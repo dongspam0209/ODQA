@@ -11,12 +11,13 @@ class ModelArguments:
     """
 
     model_name_or_path: str = field(
-        default="monologg/kobigbird-bert-base",
+        default="hongzoh/roberta-large-qa-korquad-v1",
         metadata={
             "help": "Path to pretrained model or model identifier from huggingface.co/models"
         },
     )
-
+    # FacebookAI/xlm-roberta-large : {'eval_exact_match': 52.5, 'eval_f1': 62.55275511525512, 'epoch': 3.0}
+    # timpal0l/mdeberta-v3-base-squad2
 @dataclass
 class DataTrainingArguments:
     """
@@ -57,7 +58,7 @@ class DataTrainingArguments:
         },
     )
     max_answer_length: int = field(
-        default=30,
+        default=25,
         metadata={
             "help": "The maximum length of an answer that can be generated. This is needed because the start "
             "and end predictions are not conditioned on one another."
@@ -72,7 +73,7 @@ class OurTrainingArguments(TrainingArguments):
     
     # 기본 학습 설정
     output_dir: Optional[str] = field(
-        default="./resources/checkpoint/extraction",
+        default="./resources/checkpoint/extraction/roberta-large-qa-korquad-v1-CNN",
         metadata={"help": "체크포인트와 모델 출력을 저장할 디렉터리 경로"},
     )
     do_train: bool = field(
@@ -92,21 +93,21 @@ class OurTrainingArguments(TrainingArguments):
     )
     # 학습 관련 설정
     num_train_epochs: int = field(
-        default=10,
+        default=5,
         metadata={
             "help": "학습 할 에폭 수"
             "LLM 학습 시 에폭 수를 1~3으로 줄여서 실험 진행 필요"
         },
     )
     per_device_train_batch_size: int = field(
-        default=16,
+        default=32,
         metadata={
             "help": "학습 중 장치당 배치 크기"
             "GPU 메모리에 따라 줄여서 사용 / 너무 큰 배치는 지양"
         },
     )
     per_device_eval_batch_size: int = field(
-        default=16,
+        default=32,
         metadata={
             "help": "평가 중 장치당 배치 크기"
         },
@@ -119,7 +120,8 @@ class OurTrainingArguments(TrainingArguments):
         },
     )
     learning_rate: float = field(
-        default=5e-05,
+        # default=5e-05,
+        default=1e-05,
         metadata={
             "help": "학습률 설정"
             "학습률 스케줄러(linear, cosine) 사용시 Max 값임"
@@ -153,7 +155,7 @@ class OurTrainingArguments(TrainingArguments):
         metadata={"help": "학습률 스케줄러 설정"},
     )
     warmup_steps: int = field(
-        default=90,
+        default=30,
         metadata={
             "help": "학습률을 워밍업하기 위한 스텝 수"
             "전체 학습 스텝 수의 2%~5% 정도로 설정하는 것이 일반적"

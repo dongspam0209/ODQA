@@ -53,7 +53,7 @@ def search_evaluation(q_encoder, tokenizer, test_dataset, faiss_index, text_inde
 
     print('>>> Searching documents using faiss index.')
     D, I = faiss_index.search(question_embed, search_k)
-
+    
     if bm25_model:        
         print('>>> Reranking candidates with BM25 scores.')
         bm25_scores = bm25_model.get_bm25_rerank_scores(question, I)
@@ -63,7 +63,7 @@ def search_evaluation(q_encoder, tokenizer, test_dataset, faiss_index, text_inde
             sorted_idx = np.argsort(total_scores[idx])[::-1]
             # D[idx] = D[idx][sorted_idx]
             I[idx] = I[idx][sorted_idx]
-
+    
     scores = get_topk_accuracy(I, answer_idx, text_index)
 
     return scores

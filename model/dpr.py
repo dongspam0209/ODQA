@@ -96,6 +96,8 @@ class BiEncoder(nn.Module):
         self.q_encoder = AutoModel.from_pretrained(args.model, return_dict=True)
         self.c_encoder = AutoModel.from_pretrained(args.model, return_dict=True)
         
+        # self.encoder = AutoModel.from_pretrained(args.model, return_dict=True)
+        
         self.tokenizer = AutoTokenizer.from_pretrained(args.model, config=self.config)    
         self.q_encoder.resize_token_embeddings(len(self.tokenizer))        
         self.c_encoder.resize_token_embeddings(len(self.tokenizer))

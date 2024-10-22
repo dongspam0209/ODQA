@@ -10,7 +10,7 @@ class OurTrainingArguments:
         metadata={
             'help': 'Path to pretrained model or model identifier from huggingface.co/models'
         },
-    )
+    )# KLEU
     # jhgan/ko-sroberta-multitask, team-lucid/deberta-v3-small-korean
     # Data&Tokenizer Arguments
     train_data: str = field(
