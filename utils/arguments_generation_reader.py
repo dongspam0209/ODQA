@@ -10,7 +10,7 @@ class ModelArguments:
     Arguments pertaining to which model/config/tokenizer we are going to fine-tune from.
     """
     model_name_or_path: str = field(
-        default="gogamza/kobart-base-v2",
+        default="paust/pko-t5-base",#"gogamza/kobart-base-v2",
         metadata={
             "help": "Path to pretrained model or model identifier from huggingface.co/models"
         },
@@ -49,7 +49,7 @@ class OurTrainingArguments(Seq2SeqTrainingArguments):
     
     # 기본 학습 설정
     output_dir: Optional[str] = field(
-        default="./resources/checkpoint/kosquadv1",
+        default="./resources/checkpoint/T5",
         metadata={"help": "체크포인트와 모델 출력을 저장할 디렉터리 경로"},
     )
     do_train: bool = field(
@@ -76,7 +76,7 @@ class OurTrainingArguments(Seq2SeqTrainingArguments):
         },
     )
     per_device_train_batch_size: int = field(
-        default=32,
+        default=8,
         metadata={
             "help": "학습 중 장치당 배치 크기"
             "GPU 메모리에 따라 줄여서 사용 / 너무 큰 배치는 지양"
@@ -89,7 +89,7 @@ class OurTrainingArguments(Seq2SeqTrainingArguments):
         },
     )
     gradient_accumulation_steps: int = field(
-        default=1,
+        default=2,
         metadata={
             "help": "그래디언트 누적을 위한 스텝 수"
             "GPU 자원이 부족할 시 배치를 줄이고 누적 수를 늘려 학습"
@@ -158,8 +158,12 @@ class OurTrainingArguments(Seq2SeqTrainingArguments):
             "Accuracy는 True 사용 / eval_loss는 False 사용"
         },
     )
+    save_strategy: Optional[str] = field(
+        default='epoch',
+        metadata={"help": "epoch/steps이 끝날 때마다 저장"}
+    )
     evaluation_strategy: Optional[str] = field(
-        default="steps",
+        default="epoch",
         metadata={"help": "epoch/steps이 끝날때마다 평가"},
     )
     save_steps: int = field(

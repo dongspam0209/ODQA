@@ -22,7 +22,7 @@ from transformers import Trainer, EvalPrediction
 from datasets import load_metric
 
 
-class BARTTrainer(Trainer):
+class Seq2SeqTrainer(Trainer):
     def __init__(self, *args, post_process_function=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.post_process_function = post_process_function

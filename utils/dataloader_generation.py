@@ -1,10 +1,9 @@
 from datasets import load_from_disk
-from datasets import load_metric
 from transformers import EvalPrediction
 import numpy as np
 
 
-class BARTDataModule:
+class Seq2SeqDataModule:
     def __init__(self, data_args, training_args, tokenizer):
         self.data_args = data_args
         self.training_args = training_args
@@ -16,8 +15,8 @@ class BARTDataModule:
             self.column_names = self.datasets["validation"].column_names
     
     def _prepare_features(self, examples):
-    # truncation과 padding(length가 짧을때만)을 통해 toknization을 진행하며, stride를 이용하여 overflow를 유지합니다.
-    # 각 example들은 이전의 context와 조금씩 겹치게됩니다.
+        # truncation과 padding(length가 짧을때만)을 통해 toknization을 진행하며, stride를 이용하여 overflow를 유지합니다.
+        # 각 example들은 이전의 context와 조금씩 겹치게됩니다.
         labels = [answers['text'][0] for answers in examples['answers']]
         tokenized_examples = self.tokenizer(
             text=examples['question'],
@@ -32,23 +31,30 @@ class BARTDataModule:
         )
         # labels 확장
         sample_mapping = tokenized_examples.pop("overflow_to_sample_mapping")
-        no_answer_token_ids = self.tokenizer("없음", max_length=self.training_args.max_seq_length, padding="max_length")['input_ids']
+        no_answer_token_ids = self.tokenizer("X", max_length=self.training_args.max_seq_length, padding="max_length")['input_ids']
         #no_answer_token_ids = [self.tokenizer.bos_token_id]+[self.tokenizer.pad_token_id]*(self.training_args.max_seq_length-1)
 
         example_labels = []
-        for i in sample_mapping:
-            label = tokenized_examples['labels'][i]
+        for idx, sample_idx in enumerate(sample_mapping):
+            label = tokenized_examples['labels'][sample_idx]
             decoded_label = self.tokenizer.decode(label, skip_special_tokens=True)
-            decoded_input = self.tokenizer.decode(tokenized_examples['input_ids'][i], skip_special_tokens=True)
+            decoded_input = self.tokenizer.decode(tokenized_examples['input_ids'][idx], skip_special_tokens=True)
             
             if decoded_label in decoded_input:
                 example_labels.append(label)
             else:
                 example_labels.append(no_answer_token_ids)
-        
+
         tokenized_examples['labels'] = example_labels
         #tokenized_examples["labels"] = [tokenized_examples['labels'][i] for i in sample_mapping]
 
+        total = 0
+        no = 0
+        for label in tokenized_examples['labels']:
+            if self.tokenizer.decode(label, skip_special_tokens=True) == "X":
+                no += 1
+            total += 1
+        print(f'total : {total}, no : {no}')
         return tokenized_examples
     
     def get_processing_data(self):
@@ -84,9 +90,9 @@ class BARTDataModule:
 
         preds = self.tokenizer.batch_decode(predictions, skip_special_tokens=True)
         refs = self.tokenizer.batch_decode(features['labels'], skip_special_tokens=True)
-        
-        print('preds : ', preds[:5])
-        print('refs : ', refs[:5])
+        print('')
+        print('preds : ', preds[:10])
+        print('refs : ', refs[:10])
         #후처리된 예측 ==> {"id"(예제ID), "prediction_text"(예측답변텍스트)} 딕셔너리 리스트
         #do_predict인 경우 ==> formatted_predictions (inference해야함)
         #do_eval인 경우 ==>  예측, 정답 함께 반환 (f1, em결과 확인용)
