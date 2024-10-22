@@ -35,11 +35,17 @@ class BARTDataModule:
         example_labels = []
         for i in sample_mapping:
             label = tokenized_examples['labels'][i]
+            decoded_label = self.tokenizer.decode(label, skip_special_tokens=True)
+            decoded_input = self.tokenizer.decode(tokenized_examples['input_ids'][i], skip_special_tokens=True)
+            
             if label in tokenized_examples['input_ids'][i]:
                 example_labels.append(label)
             else:
                 example_labels.append(self.tokenizer("없음", max_length=self.training_args.max_seq_length, padding="max_length"))
-        tokenized_examples['labels'] = example_labels    
+                #example_labels.append([self.tokenizer.bos_token_id]+[self.tokenizer.pad_token_id]*(self.training_args.max_seq_length-1))
+        
+        tokenized_examples['labels'] = example_labels
+        print(len(tokenized_examples['input_ids']), len(tokenized_examples['labels']))
         #tokenized_examples["labels"] = [tokenized_examples['labels'][i] for i in sample_mapping]
 
         return tokenized_examples
