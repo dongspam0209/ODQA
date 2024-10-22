@@ -23,7 +23,7 @@ class DataTrainingArguments:
     """
 
     dataset_name: Optional[str] = field(
-        default="./resources/data_kosquadv1_train_dataset",
+        default="./resources/data/data_kosquadv1_train_dataset",
         metadata={"help": "The name of the dataset to use."},
     )
     overwrite_cache: bool = field(
@@ -34,19 +34,11 @@ class DataTrainingArguments:
         default=os.cpu_count()//2,
         metadata={"help": "The number of processes to use for the preprocessing."},
     )
-    '''max_seq_length: int = field(
-        default=2000,
+    doc_stride: int=field(
+        default=128,
         metadata={
-            "help": "The maximum total input sequence length after tokenization. Sequences longer "
-            "than this will be truncated, sequences shorter will be padded."
-        },
-    )'''
-    max_answer_length: int = field(
-        default=30,
-        metadata={
-            "help": "The maximum length of an answer that can be generated. This is needed because the start "
-            "and end predictions are not conditioned on one another."
-        },
+            "help":"stride 길이"
+        }
     )
     
 @dataclass
@@ -91,7 +83,7 @@ class OurTrainingArguments(Seq2SeqTrainingArguments):
         },
     )
     per_device_eval_batch_size: int = field(
-        default=64,
+        default=16,
         metadata={
             "help": "평가 중 장치당 배치 크기"
         },
@@ -102,6 +94,13 @@ class OurTrainingArguments(Seq2SeqTrainingArguments):
             "help": "그래디언트 누적을 위한 스텝 수"
             "GPU 자원이 부족할 시 배치를 줄이고 누적 수를 늘려 학습"
         },
+    )
+    eval_accumulation_steps: int=field(
+        default=2,
+        metadata={
+            "help": "평가 누적을 위한 스텝 수"
+            "GPU 자원이 부족할 시 배치를 줄이고 누적 수를 늘려 평가"
+        }
     )
     learning_rate: int = field(
         default=5e-05,
@@ -164,12 +163,12 @@ class OurTrainingArguments(Seq2SeqTrainingArguments):
         metadata={"help": "epoch/steps이 끝날때마다 평가"},
     )
     save_steps: int = field(
-        default=1000,
+        default=500,
         metadata={
             "help": "어떤 step에서 저장할지"},
     )
     eval_steps: int = field(
-        default=1000,
+        default=500,
         metadata={
             "help": "어떤 step에서 저장할지"},
     )
@@ -189,6 +188,12 @@ class OurTrainingArguments(Seq2SeqTrainingArguments):
             "help": "The maximum total input sequence length after tokenization. Sequences longer "
             "than this will be truncated, sequences shorter will be padded."
         },
+    )
+    max_answer_length: int = field(
+        default=30,
+        metadata={
+            "help":"max answer token length"
+        }
     )
 
 

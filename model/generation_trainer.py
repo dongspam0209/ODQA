@@ -46,7 +46,6 @@ class BARTTrainer(Trainer):
             prediction_loss_only=False if self.args.do_eval else True,
             ignore_keys=ignore_keys,
         )
-        print(f'eval loss : ', output['metrics']['eval_loss'])
         if self.post_process_function is not None and self.compute_metrics is not None:
             eval_preds = self.post_process_function(
                 self.eval_dataset, output.predictions, self.args
@@ -59,7 +58,8 @@ class BARTTrainer(Trainer):
         else:
             metrics = output.metrics
             del metrics['eval_model_preparation_time']
-        print('----------비교----------')
+        print('')
+        print(f'eval loss : ', output['metrics']['eval_loss'])
         print('output EM : ', output.metrics['eval_exact_match'])
         print('metrics : ', metrics)
         print('------------------------')

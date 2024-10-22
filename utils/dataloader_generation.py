@@ -21,19 +21,26 @@ class BARTDataModule:
         labels = [answers['text'][0] for answers in examples['answers']]
         tokenized_examples = self.tokenizer(
             text=examples['question'],
-            text_pair= examples['title'].strip() + examples['context'].strip(),
+            text_pair= [title.strip()+" "+context.strip() for title, context in zip(examples['title'],examples['context'])],
             text_target=labels,
             padding="max_length",
             truncation="only_second",    # context만 truncate하기
-            max_length=self.data_args.max_seq_length,
+            max_length=self.training_args.max_seq_length,
             stride=self.data_args.doc_stride, # 이전 chunk와 overlap되는 부분을 두어 긴 문서를 처리할 때 유용. 모델이 더 나은 임베딩을 하도록 도와 QA에 유용.
             return_overflowing_tokens=True,
+            return_token_type_ids=False,
         )
-
-        del tokenized_examples['token_type_ids']
         # labels 확장
         sample_mapping = tokenized_examples.pop("overflow_to_sample_mapping")
-        tokenized_examples["labels"] = [tokenized_examples['labels'][i] for i in sample_mapping]
+        example_labels = []
+        for i in sample_mapping:
+            label = tokenized_examples['labels'][i]
+            if label in tokenized_examples['input_ids'][i]:
+                example_labels.append(label)
+            else:
+                example_labels.append(self.tokenizer("없음", max_length=self.training_args.max_seq_length, padding="max_length"))
+        tokenized_examples['labels'] = example_labels    
+        #tokenized_examples["labels"] = [tokenized_examples['labels'][i] for i in sample_mapping]
 
         return tokenized_examples
     
@@ -43,7 +50,7 @@ class BARTDataModule:
         train_dataset = train_dataset.map(
             self._prepare_features,
             batched=True,
-            num_proc=self.training_args.dataloader_num_workers,
+            num_proc=self.data_args.preprocessing_num_workers,
             remove_columns=train_dataset.column_names,
             load_from_cache_file=not self.data_args.overwrite_cache)
 
@@ -80,6 +87,8 @@ class BARTDataModule:
         preds = self.tokenizer.batch_decode(predictions, skip_special_tokens=True)
         refs = self.tokenizer.batch_decode(features['labels'], skip_special_tokens=True)
         
+        print('preds : ', preds[:5])
+        print('refs : ', refs[:5])
         #후처리된 예측 ==> {"id"(예제ID), "prediction_text"(예측답변텍스트)} 딕셔너리 리스트
         #do_predict인 경우 ==> formatted_predictions (inference해야함)
         #do_eval인 경우 ==>  예측, 정답 함께 반환 (f1, em결과 확인용)

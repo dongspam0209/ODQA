@@ -31,7 +31,7 @@ def main():
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
     
     # Load Arguments 
-    logger.info(f"Our training arguments: {training_args}")
+    #logger.info(f"Our training arguments: {training_args}")
     
     # 모델을 초기화하기 전에 난수를 고정
     set_seed(training_args.seed)
@@ -41,9 +41,9 @@ def main():
     # Load Dataset
     dm = BARTDataModule(data_args, training_args, tokenizer) 
     train_dataset, eval_dataset = dm.get_processing_data()
-    logger.info(f"Train dataset size: {len(train_dataset)}")
-    logger.info(f"Eval dataset size: {len(eval_dataset)}")
-    logger.info(f"First item in train dataset: {train_dataset[0]}")
+    #logger.info(f"Train dataset size: {len(train_dataset)}")
+    #logger.info(f"Eval dataset size: {len(eval_dataset)}")
+    #logger.info(f"First item in train dataset: {train_dataset[0]}")
     
     # 배치 단위의 데이터 전처리, 주어진 샘플들을 하나의 배치로 묶는 역할
     data_collator = DataCollatorWithPadding(tokenizer, pad_to_multiple_of=8 if training_args.fp16 else None)
