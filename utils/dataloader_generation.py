@@ -58,20 +58,11 @@ class BARTDataModule:
         val_dataset = val_dataset.map(
             self._prepare_features,
             batched=True,
-            num_proc=self.training_args.dataloader_num_workers,
+            num_proc=self.data_args.preprocessing_num_workers,
             remove_columns=val_dataset.column_names,
             load_from_cache_file=not self.data_args.overwrite_cache)
         return train_dataset, val_dataset
     
-    # T5
-    # def postprocess_text(self, preds, labels):
-    #     preds = [pred.strip() for pred in preds]
-    #     labels = [label.strip() for label in labels]
-
-    #     preds = ["\n".join(nltk.sent_tokenize(pred)) for pred in preds]
-    #     labels = ["\n".join(nltk.sent_tokenize(label)) for label in labels]
-
-    #     return preds, labels
     
     def _post_process_function(self, features, predictions, training_args):
         # BART 모델의 출력 처리
