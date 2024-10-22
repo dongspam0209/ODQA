@@ -135,19 +135,18 @@ def main(args):
 def dense_argument():
     parser = argparse.ArgumentParser(description='Build vector database with wiki text')
     parser.add_argument('--model', type=str,
-                        default="../checkpoint/dpr/context_encoder",
+                        default="../checkpoint/jhgan-ko-sroberta-multitask/context_encoder",
                         help='Directory of pretrained encoder model'
                        )
     parser.add_argument('--wiki_path', type=str, default='../resources/processed/modified_wikipedia_documents.csv',
                         help='csv 형식, 컬럼에 document id, title, context가 존재해야 함'
                        )
-    # parser.add_argument('--wiki_path', type=str, default='../wikidump/text')
     parser.add_argument('--valid_data', type=str,
                         default='../resources/dpr/dpr_valid_v2.json',
                         help='Path of validation dataset'
                        )
     parser.add_argument('--save_path', type=str, 
-                        default='./pickles',
+                        default='./pickles_kiwi_main_hf',
                         help='Save directory of faiss index'
                        )
     parser.add_argument('--save_context', action='store_true', 
@@ -159,11 +158,11 @@ def dense_argument():
                         help='Train bm25 with the same corpus'
                        )
     parser.add_argument('--num_sent', type=int, 
-                        default=3,
+                        default=5,
                         help='Number of sentences consisting of a wiki chunk'
                        )
     parser.add_argument('--overlap', type=int, 
-                        default=1,
+                        default=0,
                         help='Number of overlapping sentences between consecutive chunks'
                        )
     parser.add_argument('--pooler', default='cls', type=str,

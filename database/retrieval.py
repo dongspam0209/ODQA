@@ -1,94 +1,45 @@
-import json
-import os
-import pickle
-import time
 import random
-import logging
-from tqdm import tqdm
-from contextlib import contextmanager
-from typing import List, NoReturn, Optional, Tuple, Union, Callable
-from utils.arguments_inference import ModelArguments, DataTrainingArguments, OurTrainingArguments
-from datasets import DatasetDict, Features, Sequence, Value
-import faiss
 import numpy as np
-import pandas as pd
+from datasets import Dataset
 from database.sparse_retrieval import SparseRetrieval
-from datasets import Dataset, concatenate_datasets, load_from_disk
-from sklearn.feature_extraction.text import TfidfVectorizer
-from rank_bm25 import BM25Okapi
-from tqdm.auto import tqdm
+from datasets import DatasetDict, Features, Sequence, Value
+from utils.arguments_inference import ModelArguments, DataTrainingArguments, OurTrainingArguments
 
-logger = logging.getLogger("mrc")
-logger.setLevel(logging.INFO)
-fmt = logging.Formatter('%(asctime)s: [ %(message)s ]','%m/%d/%Y %I:%M:%S %p')
-console = logging.StreamHandler()
-console.setFormatter(fmt)
-logger.addHandler(console)
 
 seed = 104
 random.seed(seed) # python random seed 고정
 np.random.seed(seed) # numpy random seed 고정
 
-########################################
-### Sparse 성능 테스트 및 Vector 저장 ###
-########################################
-class TFIDFModel:
-    def __init__(self, documents):
-        self.documents = documents
-        self.vectorizer = TfidfVectorizer()
-        self.tfidf_matrix = None
-        
-    def train(self, model_file):
-        print("Training TF-IDF model...")
-        self.tfidf_matrix = self.vectorizer.fit_transform(tqdm(self.documents, desc="TF-IDF Training"))        
-        with open(model_file, 'wb') as f:
-            pickle.dump((self.vectorizer, self.tfidf_matrix), f)
-        print(f"TF-IDF model saved to {model_file}")
-    
-    def load(self, model_file):
-        print(f"Loading TF-IDF model from {model_file}...")
-        with open(model_file, 'rb') as f:
-            self.vectorizer, self.tfidf_matrix = pickle.load(f)
-    
-    def get_top_k(self, query, k=5):
-        query_vec = self.vectorizer.transform([query])
-        cosine_similarities = (self.tfidf_matrix * query_vec.T).toarray().flatten()
-        top_k_indices = cosine_similarities.argsort()[-k:][::-1]
-        top_k_documents = [(self.documents[i], cosine_similarities[i]) for i in top_k_indices]
-        return top_k_documents
-    
-class BM25Model:
-    def __init__(self, documents, tokenizer, k1, b):
-        self.tokenizer = tokenizer
-        self.documents = documents
-        self.k1 = k1
-        self.b = b
-        self.bm25 = None
-        
-    def train(self, model_file):
-        print("Training BM25 model...")
-        tokenized_documents = [self.tokenizer.tokenize(doc) for doc in tqdm(self.documents, desc="BM25 Tokenizing")]
-        self.bm25 = BM25Okapi(tokenized_documents, k1=self.k1, b=self.b)
-        with open(model_file, 'wb') as f:
-            pickle.dump(self.bm25, f)
-        print(f"BM25 model saved to {model_file}")
-        
-    def load(self, model_file):
-        print(f"Loading BM25 model from {model_file}...")
-        with open(model_file, 'rb') as f:
-            self.bm25 = pickle.load(f)
-            
-    def get_top_k(self, query, k=5):
-        tokenized_query = self.tokenizer.tokenize(query)
-        bm25_scores = self.bm25.get_scores(tokenized_query)
-        top_k_indices = sorted(range(len(bm25_scores)), key=lambda i: bm25_scores[i], reverse=True)[:k]
-        top_k_documents = [(self.documents[i], bm25_scores[i]) for i in top_k_indices]
-        return top_k_documents
 
-#################
-### Inference ###
-#################
-# model_args, training_args, data_args, datasets
+def run_retrieval() -> DatasetDict:
+    # Load model & tokenizer
+    q_encoder = AutoModel.from_pretrained(args.model)
+    tokenizer = AutoTokenizer.from_pretrained(args.model)
+    pooler = Pooler(args.pooler)
+    
+    # Load valid dataset.
+    test_dataset = BiEncoderDataset.load_valid_dataset(args.valid_data)
+
+    # Load faiss index & context
+    faiss_vector = VectorDatabase(args.faiss_path)
+    
+    faiss_index = faiss_vector.faiss_index
+    text_index = faiss_vector.text_index
+    text = faiss_vector.text
+
+    # Load bm25 model.
+    if args.bm25_path:
+        bm25_model = BM25Reranker(tokenizer=tokenizer, bm25_pickle=args.bm25_path)
+    else:
+        bm25_model = None
+    
+    # Get top-k accuracy
+    search_evaluation(q_encoder, tokenizer, test_dataset, faiss_index, text_index, text, search_k=args.search_k,
+                               bm25_model=bm25_model, faiss_weight=args.faiss_weight, bm25_weight=args.bm25_weight,
+                               max_length=args.max_length, pooler=pooler, padding=args.padding, truncation=args.truncation,
+                               batch_size=args.batch_size, device=args.device)
+
+
 def run_sparse_retrieval(
     model_args: ModelArguments,
     data_args: DataTrainingArguments,

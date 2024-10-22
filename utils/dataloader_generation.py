@@ -97,8 +97,14 @@ context:{}<|im_end|>
 <|im_start|>assistant
 {}<|im_end|>'''
 
+# EXAONE_TEMP = '''[|system|] You are EXAONE model from LG AI Research, a helpful assistant. [|endofturn|]
+# [|user|] Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that "없음", don't try to make up an answer. Please answer in short answer. Keep the answer as concise.
+# {}
+# Question:{}
+# [|assistant|]{}[|endofturn|]'''
+
 EXAONE_TEMP = '''[|system|] You are EXAONE model from LG AI Research, a helpful assistant. [|endofturn|]
-[|user|] Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that "없음", don't try to make up an answer. Please answer in short answer. Keep the answer as concise.
+[|user|] Use the following pieces of context to answer the question at the end. If you don't know the answer, don't try to make up an answer. Please answer in short answer. Keep the answer as concise.
 {}
 Question:{}
 [|assistant|]{}[|endofturn|]'''

@@ -140,35 +140,35 @@ class VectorDatabase(object):
         
         idx_lst, txt_lst, title_lst = self._load_wikidata_by_chunk(wiki_path, num_sent, overlap, cpu_workers, gold_passages)
 
-        all_embeddings = self.encode_text(title_lst, txt_lst, embedding_model, tokenizer, pooler, max_length, batch_size, device)
+        # all_embeddings = self.encode_text(title_lst, txt_lst, embedding_model, tokenizer, pooler, max_length, batch_size, device)
         
-        faiss.normalize_L2(all_embeddings)
-        faiss_index = faiss.IndexFlatIP(embedding_size)
-        faiss_index.add(all_embeddings)
+        # faiss.normalize_L2(all_embeddings)
+        # faiss_index = faiss.IndexFlatIP(embedding_size)
+        # faiss_index.add(all_embeddings)
         
-        print(">>> Saving faiss pickle. It contains \'text_index\' and \'faiss_index\'.")  
-        if not os.path.exists(save_path):
-            os.makedirs(save_path)
-        pickle_file_path = os.path.join(save_path, 'faiss_pickle.pkl')
+        # print(">>> Saving faiss pickle. It contains \'text_index\' and \'faiss_index\'.")  
+        # if not os.path.exists(save_path):
+        #     os.makedirs(save_path)
+        # pickle_file_path = os.path.join(save_path, 'faiss_pickle.pkl')
     
-        with open(pickle_file_path, 'wb') as file:
-            pickle.dump({
-                'text_index': idx_lst,
-                'faiss_index':faiss_index,
-            }, file)
+        # with open(pickle_file_path, 'wb') as file:
+        #     pickle.dump({
+        #         'text_index': idx_lst,
+        #         'faiss_index':faiss_index,
+        #     }, file)
 
-        if save_context:
-            print(">>> Saving context pickle. It contains \'title\' and \'text\'.")
-            pickle_file_path = os.path.join(save_path, 'context_pickle.pkl')
-            with open(pickle_file_path, 'wb') as file:
-                pickle.dump({
-                    'title': title_lst,
-                    'text':txt_lst,
-                }, file)
+        # if save_context:
+        #     print(">>> Saving context pickle. It contains \'title\' and \'text\'.")
+        #     pickle_file_path = os.path.join(save_path, 'context_pickle.pkl')
+        #     with open(pickle_file_path, 'wb') as file:
+        #         pickle.dump({
+        #             'title': title_lst,
+        #             'text':txt_lst,
+        #         }, file)
                     
         self.text = txt_lst
         self.title = title_lst
         self.text_index = idx_lst
-        self.faiss_index = faiss_index
+        # self.faiss_index = faiss_index
 
         print(f'>>> Total number of passages: {len(self.text_index)}')

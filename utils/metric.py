@@ -336,6 +336,7 @@ def get_topk_accuracy(faiss_index, answer_idx, positive_idx):
     top5_correct = 0
     top10_correct = 0
     top20_correct = 0
+    top30_correct = 0
     top50_correct = 0
     top100_correct = 0
     
@@ -350,9 +351,7 @@ def get_topk_accuracy(faiss_index, answer_idx, positive_idx):
         #       [44597 35140  7572  4596 ...]]
          
         retrieved_idx = faiss_index[idx] 
-            
-        retrieved_idx = [positive_idx[jdx] for jdx in retrieved_idx]   
-        
+        retrieved_idx = [positive_idx[jdx] for jdx in retrieved_idx]
         if any(ridx in answer for ridx in retrieved_idx[:1]):
             top1_correct += 1
         if any(ridx in answer for ridx in retrieved_idx[:5]):
@@ -361,6 +360,8 @@ def get_topk_accuracy(faiss_index, answer_idx, positive_idx):
             top10_correct += 1
         if any(ridx in answer for ridx in retrieved_idx[:20]):
             top20_correct += 1
+        if any(ridx in answer for ridx in retrieved_idx[:30]):
+            top30_correct += 1
         if any(ridx in answer for ridx in retrieved_idx[:50]):
             top50_correct += 1
         if any(ridx in answer for ridx in retrieved_idx[:100]):
@@ -370,6 +371,7 @@ def get_topk_accuracy(faiss_index, answer_idx, positive_idx):
     top5_accuracy = top5_correct / len(answer_idx)
     top10_accuracy = top10_correct / len(answer_idx)    
     top20_accuracy = top20_correct / len(answer_idx)
+    top30_accuracy = top30_correct / len(answer_idx)
     top50_accuracy = top50_correct / len(answer_idx)
     top100_accuracy = top100_correct / len(answer_idx)
 
@@ -378,6 +380,7 @@ def get_topk_accuracy(faiss_index, answer_idx, positive_idx):
         'top5_accuracy':top5_accuracy,
         'top10_accuracy':top10_accuracy,        
         'top20_accuracy':top20_accuracy,
+        'top30_accuracy':top30_accuracy,
         'top50_accuracy':top50_accuracy,
         'top100_accuracy':top100_accuracy,
     }

@@ -55,7 +55,7 @@ def main():
         quantization_config=quantization_config
     )
     modules  = find_linear_names(model, 'qlora')
-    lora_config = LoraConfig(r=32, lora_alpha=32, lora_dropout=0.1, bias="none", target_modules=modules, task_type="CAUSAL_LM", modules_to_save=None,)
+    lora_config = LoraConfig(r=64, lora_alpha=64, lora_dropout=0.1, bias="none", target_modules=modules, task_type="CAUSAL_LM", modules_to_save=None,)
     model = get_peft_model(model, lora_config)
     model.print_trainable_parameters()
     logger.info(model)
