@@ -59,7 +59,7 @@ class BARTTrainer(Trainer):
             metrics = output.metrics
             del metrics['eval_model_preparation_time']
         print('')
-        print(f'eval loss : ', output['metrics']['eval_loss'])
+        print(f'eval loss : ', output.metrics['eval_loss'])
         print('output EM : ', output.metrics['eval_exact_match'])
         print('metrics : ', metrics)
         print('------------------------')
