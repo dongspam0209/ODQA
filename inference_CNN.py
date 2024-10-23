@@ -47,7 +47,7 @@ def main():
         model_args.model_name_or_path,
         from_tf=bool(".ckpt" in model_args.model_name_or_path),
     )
-    model=Roberta_CNN_Answering(config,model_checkpoint=model_args.model_name_or_path)
+    model=BigBird_CNN_Answering(config, model_args.model_name_or_path)
     
     datasets = load_from_disk(data_args.dataset_name)
     logger.info(f"Text dataset size: {datasets}")

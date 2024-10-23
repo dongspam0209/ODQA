@@ -11,7 +11,7 @@ class ModelArguments:
     """
 
     model_name_or_path: str = field(
-        default="hongzoh/roberta-large-qa-korquad-v1",
+        default="YuJungSoo/kobigbird-pure45-19926792",
         metadata={
             "help": "Path to pretrained model or model identifier from huggingface.co/models"
         },
@@ -73,7 +73,7 @@ class OurTrainingArguments(TrainingArguments):
     
     # 기본 학습 설정
     output_dir: Optional[str] = field(
-        default="./resources/checkpoint/extraction/roberta-large-qa-korquad-v1-CNN",
+        default="./resources/checkpoint/extraction/kobigbird-pure45-19926792",
         metadata={"help": "체크포인트와 모델 출력을 저장할 디렉터리 경로"},
     )
     do_train: bool = field(
@@ -100,14 +100,14 @@ class OurTrainingArguments(TrainingArguments):
         },
     )
     per_device_train_batch_size: int = field(
-        default=32,
+        default=16,
         metadata={
             "help": "학습 중 장치당 배치 크기"
             "GPU 메모리에 따라 줄여서 사용 / 너무 큰 배치는 지양"
         },
     )
     per_device_eval_batch_size: int = field(
-        default=32,
+        default=16,
         metadata={
             "help": "평가 중 장치당 배치 크기"
         },
@@ -155,7 +155,7 @@ class OurTrainingArguments(TrainingArguments):
         metadata={"help": "학습률 스케줄러 설정"},
     )
     warmup_steps: int = field(
-        default=30,
+        default=60,
         metadata={
             "help": "학습률을 워밍업하기 위한 스텝 수"
             "전체 학습 스텝 수의 2%~5% 정도로 설정하는 것이 일반적"

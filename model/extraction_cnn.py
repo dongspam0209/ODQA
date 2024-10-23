@@ -1,6 +1,8 @@
-from transformers import AutoModel , BertPreTrainedModel , RobertaPreTrainedModel , BigBirdPreTrainedModel
+from transformers import BertPreTrainedModel , RobertaPreTrainedModel , BigBirdPreTrainedModel
+from transformers import BertModel, RobertaModel , BigBirdModel
 from transformers.modeling_outputs import QuestionAnsweringModelOutput
 from transformers.models.big_bird.modeling_big_bird import BigBirdForQuestionAnsweringModelOutput
+from transformers.models.big_bird.modeling_big_bird import BigBirdIntermediate,BigBirdOutput
 
 from torch import nn
 from torch.nn import CrossEntropyLoss
@@ -8,16 +10,12 @@ import torch
 from typing import Optional, Tuple, Union
 
 class Bert_CNN_Answering(BertPreTrainedModel):
-    def __init__(self, config , model_checkpoint: Optional[str] = None):
+    def __init__(self, config, model_path):
         super().__init__(config)
         self.num_labels = config.num_labels
 
-        # self.bert = BertModel(config, add_pooling_layer=False)
-        # self.qa_outputs = nn.Linear(config.hidden_size, config.num_labels)
-        
-        # self.bert = AutoModel.from_config(config, add_pooling_layer=False)
-        self.bert = AutoModel.from_pretrained(model_checkpoint, config=config, add_pooling_layer=False)
-        # print("KDH_AutoModel:",self.bert)
+        self.bert = BertModel.from_pretrained(model_path, config=config, add_pooling_layer=False)
+
         # for name,param in self.bert.named_parameters():
         #     print(f"Parameter {name}: requires_grad={param.requires_grad}")
 
@@ -150,16 +148,12 @@ class Bert_CNN_Answering(BertPreTrainedModel):
         )
              
 class Roberta_CNN_Answering(RobertaPreTrainedModel): 
-    def __init__(self, config , model_checkpoint: Optional[str] = None):
+    def __init__(self, config, model_path):
         super().__init__(config)
         self.num_labels = config.num_labels
 
-        # self.bert = BertModel(config, add_pooling_layer=False)
-        # self.qa_outputs = nn.Linear(config.hidden_size, config.num_labels)
-        
-        # self.bert = AutoModel.from_config(config, add_pooling_layer=False)
-        self.bert = AutoModel.from_pretrained(model_checkpoint, config=config, add_pooling_layer=False)
-        # print("KDH_AutoModel:",self.bert)
+        # self.bert = RobertaModel(config, add_pooling_layer=False)
+        self.bert = RobertaModel.from_pretrained(model_path, config=config, add_pooling_layer=False)
         # for name,param in self.bert.named_parameters():
         #     print(f"Parameter {name}: requires_grad={param.requires_grad}")
 
@@ -291,16 +285,61 @@ class Roberta_CNN_Answering(RobertaPreTrainedModel):
             attentions=outputs.attentions,
         )
 
+class BigBird_QA_HEAD(nn.Module):
+    """Head for question answering tasks."""
+
+    def __init__(self, config):
+        super().__init__()
+        self.dropout = nn.Dropout(config.hidden_dropout_prob)
+        
+        # CNN 레이어 추가 (Conv1d는 시퀀스 차원에 적용)
+        self.conv1 = nn.Conv1d(config.hidden_size, 128, kernel_size=3, stride=1, padding=1)
+        self.conv2 = nn.Conv1d(128, config.hidden_size, kernel_size=1, stride=1)
+        self.relu = nn.ReLU()
+
+        self.layer_norm = nn.LayerNorm(config.hidden_size)
+        
+        
+        self.intermediate = BigBirdIntermediate(config)
+        self.output = BigBirdOutput(config)
+        self.qa_outputs = nn.Linear(config.hidden_size, config.num_labels)
+
+    def forward(self, encoder_output):
+        hidden_states = self.dropout(encoder_output)
+        
+        cnn_input=hidden_states.permute(0,2,1)
+        for _ in range(5):
+            residual=cnn_input
+            conv1_out=self.conv1(cnn_input)
+            conv2_out=self.conv2(conv1_out)
+            relu_output=self.relu(conv2_out)
+            residual_output = relu_output + residual
+            
+            conv_output = residual_output.permute(0, 2, 1)
+            conv_input = self.layer_norm(conv_output)
+            # layernorm #
+            
+            conv_input = conv_input.permute(0, 2, 1)
+        
+        norm_output = conv_input.permute(0, 2, 1)
+        
+        
+        hidden_states = self.intermediate(norm_output)
+        hidden_states = self.output(hidden_states, encoder_output)
+        hidden_states = self.qa_outputs(hidden_states)
+        return hidden_states
+
+
 class BigBird_CNN_Answering(BigBirdPreTrainedModel):
-    def __init__(self, config, add_pooling_layer=False):
+    def __init__(self, config, model_path, add_pooling_layer=False):
         super().__init__(config)
 
         config.num_labels = 2
         self.num_labels = config.num_labels
         self.sep_token_id = config.sep_token_id
 
-        self.bert = BigBirdModel(config, add_pooling_layer=add_pooling_layer)
-        self.qa_classifier = BigBirdForQuestionAnsweringHead(config)
+        self.bert = BigBirdModel.from_pretrained(model_path, config=config, add_pooling_layer=add_pooling_layer)
+        self.qa_classifier = BigBird_QA_HEAD(config)
 
         # Initialize weights and apply final processing
         self.post_init()
@@ -332,42 +371,6 @@ class BigBird_CNN_Answering(BigBirdPreTrainedModel):
 
         Returns:
 
-        Example:
-
-        ```python
-        >>> import torch
-        >>> from transformers import AutoTokenizer, BigBirdForQuestionAnswering
-        >>> from datasets import load_dataset
-
-        >>> tokenizer = AutoTokenizer.from_pretrained("google/bigbird-roberta-base")
-        >>> model = BigBirdForQuestionAnswering.from_pretrained("google/bigbird-roberta-base")
-        >>> squad_ds = load_dataset("rajpurkar/squad_v2", split="train")  # doctest: +IGNORE_RESULT
-
-        >>> # select random article and question
-        >>> LONG_ARTICLE = squad_ds[81514]["context"]
-        >>> QUESTION = squad_ds[81514]["question"]
-        >>> QUESTION
-        'During daytime how high can the temperatures reach?'
-
-        >>> inputs = tokenizer(QUESTION, LONG_ARTICLE, return_tensors="pt")
-        >>> # long article and question input
-        >>> list(inputs["input_ids"].shape)
-        [1, 929]
-
-        >>> with torch.no_grad():
-        ...     outputs = model(**inputs)
-
-        >>> answer_start_index = outputs.start_logits.argmax()
-        >>> answer_end_index = outputs.end_logits.argmax()
-        >>> predict_answer_token_ids = inputs.input_ids[0, answer_start_index : answer_end_index + 1]
-        >>> predict_answer_token = tokenizer.decode(predict_answer_token_ids)
-        ```
-
-        ```python
-        >>> target_start_index, target_end_index = torch.tensor([130]), torch.tensor([132])
-        >>> outputs = model(**inputs, start_positions=target_start_index, end_positions=target_end_index)
-        >>> loss = outputs.loss
-        ```
         """
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
@@ -379,6 +382,12 @@ class BigBird_CNN_Answering(BigBirdPreTrainedModel):
             question_lengths.unsqueeze_(1)
 
         logits_mask = None
+        # print(question_lengths.shape) # [16,1]
+        # print(seqlen.shape)
+        
+        # print(question_lengths)
+        # print(seqlen) # 384 우리가 설정한 max_seq_len임
+        
         if question_lengths is not None:
             # setting lengths logits to `-inf`
             logits_mask = self.prepare_question_mask(question_lengths, seqlen)
@@ -401,6 +410,9 @@ class BigBird_CNN_Answering(BigBirdPreTrainedModel):
         )
 
         sequence_output = outputs[0]
+        
+        ##
+        
         logits = self.qa_classifier(sequence_output)
 
         if logits_mask is not None:
@@ -439,4 +451,11 @@ class BigBird_CNN_Answering(BigBirdPreTrainedModel):
             pooler_output=outputs.pooler_output,
             hidden_states=outputs.hidden_states,
             attentions=outputs.attentions,
-        )
+        ) 
+    
+    def prepare_question_mask(self,q_lengths: torch.Tensor, maxlen: int):
+        # q_lengths -> (bz, 1)
+        mask = torch.arange(0, maxlen).to(q_lengths.device)
+        mask.unsqueeze_(0)  # -> (1, maxlen)
+        mask = torch.where(mask < q_lengths, 1, 0)
+        return mask

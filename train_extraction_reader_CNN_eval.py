@@ -43,9 +43,9 @@ def main():
     tokenizer = AutoTokenizer.from_pretrained(model_args.model_name_or_path) 
     config = AutoConfig.from_pretrained( 
         model_args.model_name_or_path,
-        from_tf=bool(".ckpt" in model_args.model_name_or_path),
+        # from_tf=bool(".ckpt" in model_args.model_name_or_path),
     )
-    model=BigBird_CNN_Answering(config,model_args.model_name_or_path)
+    model=BigBird_CNN_Answering(config, model_args.model_name_or_path)
     logger.info(model) #모델 구조를 로그에 기록
     
     # 데이터 불러오기 및 전처리 data_args, training_args, tokenizer
@@ -70,30 +70,30 @@ def main():
     )
     logger.info(f"Train dataset size: {len(train_dataset)}")
     logger.info(f"Eval dataset size: {len(eval_dataset)}")
-    # Training
-    train_result = trainer.train()
-    trainer.save_model()  # 학습된 모델 + 토크나이저 저장
+    # # Training
+    # train_result = trainer.train()
+    # trainer.save_model()  # 학습된 모델 + 토크나이저 저장
 
-    metrics = train_result.metrics #학습 결과의 메트릭 정보 추출
-    metrics["train_samples"] = len(train_dataset) #메트릭 딕셔너리에 학습 샘플의 수 추가
+    # metrics = train_result.metrics #학습 결과의 메트릭 정보 추출
+    # metrics["train_samples"] = len(train_dataset) #메트릭 딕셔너리에 학습 샘플의 수 추가
 
-    trainer.log_metrics("train", metrics) 
-    trainer.save_metrics("train", metrics)
-    trainer.save_state()
+    # trainer.log_metrics("train", metrics) 
+    # trainer.save_metrics("train", metrics)
+    # trainer.save_state()
 
-    output_train_file = os.path.join(training_args.output_dir, "train_results.txt")
-    #학습결과 저장할 파일 경로+이름
+    # output_train_file = os.path.join(training_args.output_dir, "train_results.txt")
+    # #학습결과 저장할 파일 경로+이름
     
-    with open(output_train_file, "w") as writer:
-        logger.info("***** Train results *****")
-        for key, value in sorted(train_result.metrics.items()):
-            logger.info(f"  {key} = {value}")
-            writer.write(f"{key} = {value}\n")
+    # with open(output_train_file, "w") as writer:
+    #     logger.info("***** Train results *****")
+    #     for key, value in sorted(train_result.metrics.items()):
+    #         logger.info(f"  {key} = {value}")
+    #         writer.write(f"{key} = {value}\n")
 
-    # Training state 저장
-    trainer.state.save_to_json(
-        os.path.join(training_args.output_dir, "trainer_state.json")
-    )
+    # # Training state 저장
+    # trainer.state.save_to_json(
+    #     os.path.join(training_args.output_dir, "trainer_state.json")
+    # )
 
     # Evaluation
     logger.info("***** Evaluate *****")

@@ -11,7 +11,7 @@ class ModelArguments:
     """
 
     model_name_or_path: str = field(
-        default="resources/checkpoint/extraction/roberta-large-qa-korquad-v1-CNN",
+        default="./resources/checkpoint/extraction/kobigbird-pure45-19926792-CNN",
         metadata={
             "help": "학습이 완료된 모델 경로를 넣기"
         },
@@ -31,7 +31,7 @@ class ModelArguments:
         metadata={"help": "tfidf, bm25, 선택"},
     )
     tokenizer: str = field(
-        default="hongzoh/roberta-large-qa-korquad-v1",
+        default="YuJungSoo/kobigbird-pure45-19926792",
         metadata={"help": "huggingface 모델명 혹은 kiwi(한국어 형태소 분석기) 선택"},
     )
     
