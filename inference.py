@@ -50,14 +50,16 @@ def main():
     datasets = load_from_disk(data_args.dataset_name)
     logger.info(f"Text dataset size: {datasets}")
     
-    # retrieval 방식 선택
-    if model_args.eval_retrieval == 'sparse':
-        datasets = run_sparse_retrieval(model_args, data_args, training_args, datasets)
-    elif model_args.eval_retrieval == 'dense':
-        NotImplemented
-    elif model_args.eval_retrieval == 'sparse+dense':
-        NotImplemented
-    
+    # # retrieval 방식 선택
+    # if model_args.eval_retrieval == 'sparse':
+    #     datasets = run_sparse_retrieval(model_args, data_args, training_args, datasets)
+    # elif model_args.eval_retrieval == 'dense':
+    #     NotImplemented
+    # elif model_args.eval_retrieval == 'sparse+dense':
+    #     NotImplemented
+    datasets=load_from_disk("./resources/retrieval/final_clean_top40_bm25_retrieval_dataset")
+    # datasets=load_from_disk("resources/final_top40_bm25_retrieval_dataset/final_top40_bm25_retrieval_dataset")
+    # datasets=load_from_disk("bm25_origin/bm25_origin")
     
     # 데이터 불러오기 및 전처리 data_args, training_args, tokenizer
     dm = ExtracionDataModuleforInference(data_args, training_args, tokenizer, datasets)

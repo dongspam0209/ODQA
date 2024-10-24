@@ -6,7 +6,8 @@ from typing import List
 class OurTrainingArguments:
     # Model Arguments 
     model: str = field(
-        default='sentence-transformers/paraphrase-MiniLM-L6-v2',
+        # default='sentence-transformers/paraphrase-MiniLM-L6-v2',
+        default='deliciouscat/kf-deberta-base-cross-sts',
         metadata={
             'help': 'Path to pretrained model or model identifier from huggingface.co/models'
         },
@@ -62,7 +63,7 @@ class OurTrainingArguments:
         },
     )
     batch_size: int = field(
-        default=64,
+        default=16,
         metadata={
             'help': 'The batch size for training the bi-encoders.'
         },

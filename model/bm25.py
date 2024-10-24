@@ -41,7 +41,7 @@ class BM25Reranker(object):
                 for x in morph_question_form:
                     morph_question_form_hf.extend(self.tokenizer.tokenize(x))
             except:
-                morph_question_form = txt.split(' ')
+                morph_question_form = kiwi.tokenize(txt)
             tokenized_text.append(morph_question_form_hf)
         return tokenized_text
 

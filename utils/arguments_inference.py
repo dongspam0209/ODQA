@@ -11,7 +11,7 @@ class ModelArguments:
     """
 
     model_name_or_path: str = field(
-        default="monologg/kobigbird-bert-base",
+        default="./resources/checkpoint/aihub_clean_transfer",
         metadata={
             "help": "학습이 완료된 모델 경로를 넣기"
         },
@@ -102,7 +102,7 @@ class OurTrainingArguments(TrainingArguments):
     
     # 기본 학습 설정
     output_dir: Optional[str] = field(
-        default="./",
+        default="./resources/result/final_clean_top40_bm25/",
         metadata={"help": "예측 결과 저장 경로"},
     )
     do_predict: bool = field(

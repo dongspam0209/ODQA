@@ -330,7 +330,7 @@ def format_time(elapsed):
     return str(datetime.timedelta(seconds=elapsed_rounded)) # Format as hh:mm:ss
 
 
-def get_topk_accuracy(faiss_index, answer_idx, positive_idx): 
+def get_topk_accuracy(faiss_index, answer_idx, positive_idx, text=None, title=None): 
 
     top1_correct = 0
     top5_correct = 0
@@ -384,3 +384,45 @@ def get_topk_accuracy(faiss_index, answer_idx, positive_idx):
         'top50_accuracy':top50_accuracy,
         'top100_accuracy':top100_accuracy,
     }
+
+import pandas as pd
+from datasets import Dataset
+from datasets import DatasetDict, Features, Sequence, Value
+from utils.context_preprocess import WikipediaTextPreprocessor
+preprocessor = WikipediaTextPreprocessor()
+
+
+def get_topk_document(faiss_index, question, question_idx, positive_idx, text=None, title=None, save_dir=None): 
+
+    result = []    
+    for idx, q_idx in enumerate(question_idx):
+        retrieved_idx = faiss_index[idx] 
+        retrieved_idx = [positive_idx[jdx] for jdx in retrieved_idx]
+        candidate_corpus = retrieved_idx[:40]
+        
+        context = []
+        for x in candidate_corpus:
+            clean_text = preprocessor.preprocess_pipeline(text[x])
+            corpus = title[x] + '. ' + clean_text
+            context.append(corpus)
+            
+        tmp = {
+            # Query와 해당 id를 반환합니다.
+            "question": question[idx],
+            "id": q_idx,
+            # Retrieve한 Passage의 id, context를 반환합니다.
+            "context": "\n\n".join(context),
+        }
+        result.append(tmp)
+    cqas = pd.DataFrame(result)
+    print(cqas)
+    # cqas.to_csv('new_dataset3.csv', encoding='utf-8-sig')
+    f = Features(
+        {
+            "context": Value(dtype="string", id=None),
+            "id": Value(dtype="string", id=None),
+            "question": Value(dtype="string", id=None),
+        }
+    )
+    datasets = DatasetDict({"validation": Dataset.from_pandas(cqas, features=f)})
+    datasets.save_to_disk(save_dir)

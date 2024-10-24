@@ -9,7 +9,7 @@ import pandas as pd
 from tqdm import tqdm
 from multiprocessing import Pool
 from nltk import sent_tokenize
-
+from datasets import load_from_disk
 
 class VectorDatabase(object):
     
@@ -83,11 +83,42 @@ class VectorDatabase(object):
         print(f'>>> Total number of passages: ')
 
         return idx_lst, txt_lst, title_lst
+
+    def _load_wikidata(self, wiki_path, num_sent=5, overlap=0, cpu_workers=None, gold_passages=None):
+        print('>>> Loading valid data.')
+        datasets = load_from_disk("../resources/data/train_dataset")
+        df_valid = datasets['validation'].to_pandas()
+        print('>>> Loading wiki data.')
+        df = pd.read_csv(wiki_path)
+        
+        # Store text from test set first.
+        idx_lst, txt_lst, title_lst = [], [], [] 
+        for idx, row in df_valid.iterrows():
+            idx_lst.append(idx)
+            
+            title = row['title'].strip()
+            title_lst.append(title)
+            
+            txt = row['context'].strip()
+            txt_lst.append(txt)
+        
+        for _, row in df.iterrows():
+            title = row['title'].strip()
+            title_lst.append(title)
+            
+            txt = row['text'].strip()
+            txt_lst.append(txt)
+            
+        for _idx in range(idx_lst[-1]+1, len(txt_lst)):
+            idx_lst.append(_idx)
+        print(idx_lst[239:242])
+        print(len(idx_lst))
+        print(f'>>> Total number of passages: ')
+        return idx_lst, txt_lst, title_lst
     
     def encode_text(self, title, text, embedding_model, tokenizer, pooler=None, max_length=512, batch_size=32, device='cuda'):
     
         print('>>> Encoding wiki data.')
-
         embedding_model = embedding_model.to(device)
         
         all_ctx_embed = []
@@ -140,35 +171,87 @@ class VectorDatabase(object):
         
         idx_lst, txt_lst, title_lst = self._load_wikidata_by_chunk(wiki_path, num_sent, overlap, cpu_workers, gold_passages)
 
-        # all_embeddings = self.encode_text(title_lst, txt_lst, embedding_model, tokenizer, pooler, max_length, batch_size, device)
+        all_embeddings = self.encode_text(title_lst, txt_lst, embedding_model, tokenizer, pooler, max_length, batch_size, device)
         
-        # faiss.normalize_L2(all_embeddings)
-        # faiss_index = faiss.IndexFlatIP(embedding_size)
-        # faiss_index.add(all_embeddings)
+        faiss.normalize_L2(all_embeddings)
+        faiss_index = faiss.IndexFlatIP(embedding_size)
+        faiss_index.add(all_embeddings)
         
-        # print(">>> Saving faiss pickle. It contains \'text_index\' and \'faiss_index\'.")  
-        # if not os.path.exists(save_path):
-        #     os.makedirs(save_path)
-        # pickle_file_path = os.path.join(save_path, 'faiss_pickle.pkl')
+        print(">>> Saving faiss pickle. It contains \'text_index\' and \'faiss_index\'.")  
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
+        pickle_file_path = os.path.join(save_path, 'faiss_pickle.pkl')
     
-        # with open(pickle_file_path, 'wb') as file:
-        #     pickle.dump({
-        #         'text_index': idx_lst,
-        #         'faiss_index':faiss_index,
-        #     }, file)
+        with open(pickle_file_path, 'wb') as file:
+            pickle.dump({
+                'text_index': idx_lst,
+                'faiss_index':faiss_index,
+            }, file)
 
-        # if save_context:
-        #     print(">>> Saving context pickle. It contains \'title\' and \'text\'.")
-        #     pickle_file_path = os.path.join(save_path, 'context_pickle.pkl')
-        #     with open(pickle_file_path, 'wb') as file:
-        #         pickle.dump({
-        #             'title': title_lst,
-        #             'text':txt_lst,
-        #         }, file)
+        if save_context:
+            print(">>> Saving context pickle. It contains \'title\' and \'text\'.")
+            pickle_file_path = os.path.join(save_path, 'context_pickle.pkl')
+            with open(pickle_file_path, 'wb') as file:
+                pickle.dump({
+                    'title': title_lst,
+                    'text':txt_lst,
+                }, file)
                     
         self.text = txt_lst
         self.title = title_lst
         self.text_index = idx_lst
-        # self.faiss_index = faiss_index
+        self.faiss_index = faiss_index
+
+        print(f'>>> Total number of passages: {len(self.text_index)}')
+
+    def build_embedding_no(self,
+                        wiki_path=None,
+                        save_path=None,
+                        save_context=None,
+                        tokenizer=None,
+                        embedding_model=None,
+                        pooler = None,
+                        num_sent=5,
+                        overlap=0,
+                        cpu_workers=None,
+                        gold_passages=None,
+                        embedding_size=768,
+                        max_length=512,
+                        batch_size=32,
+                        device='cuda',
+                        ):
+        
+        idx_lst, txt_lst, title_lst = self._load_wikidata(wiki_path, num_sent, overlap, cpu_workers, gold_passages)
+
+        all_embeddings = self.encode_text(title_lst, txt_lst, embedding_model, tokenizer, pooler, max_length, batch_size, device)
+        
+        faiss.normalize_L2(all_embeddings)
+        faiss_index = faiss.IndexFlatIP(embedding_size)
+        faiss_index.add(all_embeddings)
+        
+        print(">>> Saving faiss pickle. It contains \'text_index\' and \'faiss_index\'.")  
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
+        pickle_file_path = os.path.join(save_path, 'faiss_pickle.pkl')
+    
+        with open(pickle_file_path, 'wb') as file:
+            pickle.dump({
+                'text_index': idx_lst,
+                'faiss_index':faiss_index,
+            }, file)
+
+        if save_context:
+            print(">>> Saving context pickle. It contains \'title\' and \'text\'.")
+            pickle_file_path = os.path.join(save_path, 'context_pickle.pkl')
+            with open(pickle_file_path, 'wb') as file:
+                pickle.dump({
+                    'title': title_lst,
+                    'text':txt_lst,
+                }, file)
+                    
+        self.text = txt_lst
+        self.title = title_lst
+        self.text_index = idx_lst
+        self.faiss_index = faiss_index
 
         print(f'>>> Total number of passages: {len(self.text_index)}')

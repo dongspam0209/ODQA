@@ -22,17 +22,19 @@ def search_evaluation(q_encoder, tokenizer, test_dataset, faiss_index, text_inde
     
     question = test_dataset.question
     answer_idx = test_dataset.answer_idx
+    print(answer_idx)
+    exit()
     
     # BM25를 통해 각 question에 해당하는 corpus 유사도 점수 계산
     print('>>> Searching documents using BM25 index.')
     question_test_idx = np.array([text_index for _ in range(len(question))])
     
-    bm25_scores = bm25_model.get_bm25_rerank_scores(question, question_test_idx)
-    # shape : (240, 138564) = (valid 질문 수, passage 수)
-    with open("valid_bm25_kiwi_main_scores.pkl", 'wb') as file:
-        pickle.dump(bm25_scores, file)
+    # bm25_scores = bm25_model.get_bm25_rerank_scores(question, question_test_idx)
+    # # shape : (240, 138564) = (valid 질문 수, passage 수)
+    # with open("valid_bm25_kiwi_main-hf-dpr2_scores.pkl", 'wb') as file:
+    #     pickle.dump(bm25_scores, file)
     
-    with open("valid_bm25_kiwi_main_scores.pkl", 'rb') as file:
+    with open("valid_bm25_kiwi_main-hf-dpr2_scores.pkl", 'rb') as file:
         bm25_scores = pickle.load(file)
         print("Load bm25 scores:", bm25_scores.shape)
     
@@ -150,7 +152,7 @@ def main(args):
 def argument_parser():
     parser = argparse.ArgumentParser(description='get topk-accuracy of retrieval model')
     parser.add_argument('--model', type=str, 
-                        default = './checkpoint/jhgan-ko-sroberta-multitask/question_encoder',
+                        default = './checkpoint/dpr/question_encoder',
                         help='Directory of pretrained encoder model'
                        )
     parser.add_argument('--valid_data', type=str,
@@ -158,11 +160,11 @@ def argument_parser():
                         help='Path of validation dataset'
                        )
     parser.add_argument('--faiss_path', type=str,
-                        default='./database/pickles_kiwi_main/faiss_pickle.pkl',
+                        default='./database/pickles_kiwi_main_hf_dpr2/faiss_pickle.pkl',
                         help='Path of faiss pickle'
                        )
     parser.add_argument('--bm25_path', type=str,
-                        default='./database/pickles_kiwi_main/bm25_pickle.pkl',
+                        default='./database/pickles_kiwi_main_hf_dpr2/bm25_pickle.pkl',
                         help='Path of BM25 Model'
                        )
     # parser.add_argument('--context_path', type=str,

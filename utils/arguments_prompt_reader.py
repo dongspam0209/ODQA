@@ -25,7 +25,8 @@ class DataTrainingArguments:
     """
 
     dataset_name: Optional[str] = field(
-        default="./resources/data_open_train_dataset",
+        # default="./resources/data_open_train_dataset",
+        default="./resources/data/train_dataset",
         metadata={"help": "The name of the dataset to use."},
     )
     overwrite_cache: bool = field(
@@ -59,7 +60,7 @@ class OurTrainingArguments(SFTConfig):
     
     # 기본 학습 설정
     output_dir: Optional[str] = field(
-        default="./resources/checkpoint/koquadv1+aihub",
+        default="./resources/checkpoint/koquadv1+aihub+origin",
         metadata={"help": "체크포인트와 모델 출력을 저장할 디렉터리 경로"},
     )
     do_train: bool = field(
@@ -147,7 +148,7 @@ class OurTrainingArguments(SFTConfig):
         metadata={"help": "학습률 스케줄러 설정"},
     )
     warmup_steps: int = field(
-        default=400,
+        default=200,
         metadata={
             "help": "학습률을 워밍업하기 위한 스텝 수"
             "전체 학습 스텝 수의 2%~5% 정도로 설정하는 것이 일반적"
@@ -173,12 +174,12 @@ class OurTrainingArguments(SFTConfig):
         metadata={"help": "epoch/steps이 끝날때마다 평가"},
     )
     save_steps: int = field(
-        default=1000,
+        default=200,
         metadata={
             "help": "어떤 step에서 저장할지"},
     )
     eval_steps: int = field(
-        default=1000,
+        default=200,
         metadata={
             "help": "어떤 step에서 저장할지"},
     )

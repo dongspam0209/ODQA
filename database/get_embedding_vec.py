@@ -135,7 +135,7 @@ def main(args):
 def dense_argument():
     parser = argparse.ArgumentParser(description='Build vector database with wiki text')
     parser.add_argument('--model', type=str,
-                        default="../checkpoint/jhgan-ko-sroberta-multitask/context_encoder",
+                        default="../checkpoint/dpr/context_encoder",
                         help='Directory of pretrained encoder model'
                        )
     parser.add_argument('--wiki_path', type=str, default='../resources/processed/modified_wikipedia_documents.csv',
@@ -146,7 +146,7 @@ def dense_argument():
                         help='Path of validation dataset'
                        )
     parser.add_argument('--save_path', type=str, 
-                        default='./pickles_kiwi_main_hf',
+                        default='./pickles_kiwi_main_hf_dpr2',
                         help='Save directory of faiss index'
                        )
     parser.add_argument('--save_context', action='store_true', 

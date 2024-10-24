@@ -9,9 +9,9 @@ class ModelArguments:
     """
     Arguments pertaining to which model/config/tokenizer we are going to fine-tune from.
     """
-
+    # 변경 필요
     model_name_or_path: str = field(
-        default="monologg/kobigbird-bert-base",
+        default="./resources/checkpoint/aihub_clean_transfer",
         metadata={
             "help": "Path to pretrained model or model identifier from huggingface.co/models"
         },
@@ -22,9 +22,9 @@ class DataTrainingArguments:
     """
     Arguments pertaining to what data we are going to input our model for training and eval.
     """
-
+    # 변경 필요
     dataset_name: Optional[str] = field( #data_args.dataset_name ==> "data/train_dataset"
-        default="./resources/data/train_dataset",
+        default="./resources/data_preprocessed_dataset",
         metadata={"help": "The name of the dataset to use."},
     )
     overwrite_cache: bool = field(
@@ -71,8 +71,9 @@ class OurTrainingArguments(TrainingArguments):
     """
     
     # 기본 학습 설정
+    # 변경 필요
     output_dir: Optional[str] = field(
-        default="./resources/checkpoint/extraction",
+        default="./resources/checkpoint/aihub_clean_transfer",
         metadata={"help": "체크포인트와 모델 출력을 저장할 디렉터리 경로"},
     )
     do_train: bool = field(
@@ -91,13 +92,15 @@ class OurTrainingArguments(TrainingArguments):
         },
     )
     # 학습 관련 설정
+    # 변경 필요
     num_train_epochs: int = field(
-        default=10,
+        default=5,
         metadata={
             "help": "학습 할 에폭 수"
             "LLM 학습 시 에폭 수를 1~3으로 줄여서 실험 진행 필요"
         },
     )
+    # 변경 필요
     per_device_train_batch_size: int = field(
         default=16,
         metadata={
@@ -105,6 +108,7 @@ class OurTrainingArguments(TrainingArguments):
             "GPU 메모리에 따라 줄여서 사용 / 너무 큰 배치는 지양"
         },
     )
+    # 변경 필요
     per_device_eval_batch_size: int = field(
         default=16,
         metadata={
@@ -134,7 +138,7 @@ class OurTrainingArguments(TrainingArguments):
         },
     )
     weight_decay: int = field(
-        default=0.01,
+        default=0.1,
         metadata={
             "help": "가중치 감소율 (정규화), 과적합 방지"
             "0.01 ~ 0.1 정도가 많이 사용"
@@ -152,8 +156,9 @@ class OurTrainingArguments(TrainingArguments):
         default="cosine",
         metadata={"help": "학습률 스케줄러 설정"},
     )
+    # 변경 필요
     warmup_steps: int = field(
-        default=90,
+        default=1235,
         metadata={
             "help": "학습률을 워밍업하기 위한 스텝 수"
             "전체 학습 스텝 수의 2%~5% 정도로 설정하는 것이 일반적"

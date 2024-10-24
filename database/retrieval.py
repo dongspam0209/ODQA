@@ -4,6 +4,19 @@ from datasets import Dataset
 from database.sparse_retrieval import SparseRetrieval
 from datasets import DatasetDict, Features, Sequence, Value
 from utils.arguments_inference import ModelArguments, DataTrainingArguments, OurTrainingArguments
+import torch
+import pickle
+import logging
+import argparse
+import numpy as np
+from tqdm import tqdm
+from transformers import AutoModel, AutoTokenizer
+from model.dpr import Pooler
+from utils.dataloader_dpr import BiEncoderDataset
+from database.dense_retrieval import VectorDatabase
+from model.bm25 import BM25Reranker
+from utils.metric import get_topk_accuracy
+from utils.utils import init_logging
 
 
 seed = 104
