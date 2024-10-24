@@ -11,7 +11,7 @@ from utils.metric import compute_metrics
 from transformers import HfArgumentParser, set_seed, AutoTokenizer, AutoConfig, DataCollatorWithPadding
 from database.retrieval import run_sparse_retrieval
 from model.extraction_trainer import QuestionAnsweringTrainer
-from model.extraction_cnn import Bert_CNN_Answering , Roberta_CNN_Answering , BigBird_CNN_Answering
+from model.extraction_cnn import Bert_CNN_Answering  , BigBird_CNN_Answering
 
 
 logger = logging.getLogger("mrc")
@@ -49,17 +49,20 @@ def main():
     )
     model=BigBird_CNN_Answering(config, model_args.model_name_or_path)
     
-    datasets = load_from_disk(data_args.dataset_name)
-    logger.info(f"Text dataset size: {datasets}")
+    # datasets = load_from_disk(data_args.dataset_name)
+    # logger.info(f"Text dataset size: {datasets}")
     
-    # retrieval 방식 선택
-    if model_args.eval_retrieval == 'sparse':
-        datasets = run_sparse_retrieval(model_args, data_args, training_args, datasets)
-    elif model_args.eval_retrieval == 'dense':
-        NotImplemented
-    elif model_args.eval_retrieval == 'sparse+dense':
-        NotImplemented
+    # # retrieval 방식 선택
+    # if model_args.eval_retrieval == 'sparse':
+    #     datasets = run_sparse_retrieval(model_args, data_args, training_args, datasets)
+    # elif model_args.eval_retrieval == 'dense':
+    #     NotImplemented
+    # elif model_args.eval_retrieval == 'sparse+dense':
+    #     NotImplemented
     
+    datasets=load_from_disk("resources/final_top40_dpr2+bm25_retrieval_dataset/final_top40_dpr2+bm25_retrieval_dataset")
+    # datasets=load_from_disk("resources/final_top40_bm25_retrieval_dataset/final_top40_bm25_retrieval_dataset")
+    # datasets=load_from_disk("resources/bm25_origin")
     
     # 데이터 불러오기 및 전처리 data_args, training_args, tokenizer
     dm = ExtracionDataModuleforInference(data_args, training_args, tokenizer, datasets)

@@ -11,7 +11,7 @@ class ModelArguments:
     """
 
     model_name_or_path: str = field(
-        default="YuJungSoo/kobigbird-pure45-19926792",
+        default="eeeyounglee/kpfbert-korquad-1",
         metadata={
             "help": "Path to pretrained model or model identifier from huggingface.co/models"
         },
@@ -25,7 +25,7 @@ class DataTrainingArguments:
     """
 
     dataset_name: Optional[str] = field( #data_args.dataset_name ==> "data/train_dataset"
-        default="./resources/data/train_dataset",
+        default="./resources/train_cleaned_dataset",
         metadata={"help": "The name of the dataset to use."},
     )
     overwrite_cache: bool = field(
@@ -73,7 +73,7 @@ class OurTrainingArguments(TrainingArguments):
     
     # 기본 학습 설정
     output_dir: Optional[str] = field(
-        default="./resources/checkpoint/extraction/kobigbird-pure45-19926792",
+        default="./resources/checkpoint/extraction/kpfbert-korquad-1_cleaned-CNN",
         metadata={"help": "체크포인트와 모델 출력을 저장할 디렉터리 경로"},
     )
     do_train: bool = field(
@@ -100,14 +100,14 @@ class OurTrainingArguments(TrainingArguments):
         },
     )
     per_device_train_batch_size: int = field(
-        default=16,
+        default=32,
         metadata={
             "help": "학습 중 장치당 배치 크기"
             "GPU 메모리에 따라 줄여서 사용 / 너무 큰 배치는 지양"
         },
     )
     per_device_eval_batch_size: int = field(
-        default=16,
+        default=32,
         metadata={
             "help": "평가 중 장치당 배치 크기"
         },
@@ -136,7 +136,7 @@ class OurTrainingArguments(TrainingArguments):
         },
     )
     weight_decay: int = field(
-        default=0.01,
+        default=0.5,
         metadata={
             "help": "가중치 감소율 (정규화), 과적합 방지"
             "0.01 ~ 0.1 정도가 많이 사용"
@@ -155,7 +155,8 @@ class OurTrainingArguments(TrainingArguments):
         metadata={"help": "학습률 스케줄러 설정"},
     )
     warmup_steps: int = field(
-        default=60,
+        #500
+        default=30,
         metadata={
             "help": "학습률을 워밍업하기 위한 스텝 수"
             "전체 학습 스텝 수의 2%~5% 정도로 설정하는 것이 일반적"

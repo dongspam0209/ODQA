@@ -11,7 +11,7 @@ class ModelArguments:
     """
 
     model_name_or_path: str = field(
-        default="./resources/checkpoint/extraction/kobigbird-pure45-19926792-CNN",
+        default="resources/checkpoint/extraction/kobigbird-base23-57995154-aihub_and_cleaned-CNN/checkpoint-630",
         metadata={
             "help": "학습이 완료된 모델 경로를 넣기"
         },
@@ -31,7 +31,7 @@ class ModelArguments:
         metadata={"help": "tfidf, bm25, 선택"},
     )
     tokenizer: str = field(
-        default="YuJungSoo/kobigbird-pure45-19926792",
+        default="sudong97/kobigbird-base23-57995154",
         metadata={"help": "huggingface 모델명 혹은 kiwi(한국어 형태소 분석기) 선택"},
     )
     
@@ -102,7 +102,7 @@ class OurTrainingArguments(TrainingArguments):
     
     # 기본 학습 설정
     output_dir: Optional[str] = field(
-        default="./",
+        default="./수동-dpr",
         metadata={"help": "예측 결과 저장 경로"},
     )
     do_predict: bool = field(

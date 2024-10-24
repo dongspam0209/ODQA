@@ -10,7 +10,11 @@ from utils.dataloader_reader import ExtracionDataModule
 from utils.metric import compute_metrics
 from transformers import HfArgumentParser, set_seed, AutoTokenizer, DataCollatorWithPadding, AutoConfig
 from model.extraction_trainer import QuestionAnsweringTrainer
-from model.extraction_cnn import Bert_CNN_Answering , Roberta_CNN_Answering , BigBird_CNN_Answering
+from model.extraction_cnn import Bert_CNN_Answering , BigBird_CNN_Answering
+
+
+
+
 
 logger = logging.getLogger("mrc")
 logger.setLevel(logging.INFO)
@@ -45,7 +49,7 @@ def main():
         model_args.model_name_or_path,
         from_tf=bool(".ckpt" in model_args.model_name_or_path),
     )
-    model=BigBird_CNN_Answering(config,model_args.model_name_or_path)
+    model=Bert_CNN_Answering(config,model_args.model_name_or_path)
     logger.info(model) #모델 구조를 로그에 기록
     
     # 데이터 불러오기 및 전처리 data_args, training_args, tokenizer
