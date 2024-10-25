@@ -67,7 +67,7 @@ def main():
 
     # 모델 학습 및 평가 진행
     torch.cuda.empty_cache()
-    train_result = trainer.train()
+    '''train_result = trainer.train()
     trainer.save_model()  # Saves the tokenizer too for easy upload
 
     metrics = train_result.metrics
@@ -91,7 +91,7 @@ def main():
     )
     
     # Evaluation
-    logger.info("***** Evaluate *****")
+    logger.info("***** Evaluate *****")'''
     metrics = trainer.evaluate()
 
     metrics["eval_samples"] = len(eval_dataset)
