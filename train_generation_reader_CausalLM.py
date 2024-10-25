@@ -1,13 +1,18 @@
 import os
-import torch
+import numpy as np
 import random
 import logging
-import numpy as np
-from utils.dataloader_generation import Seq2SeqDataModule
-from utils.arguments_generation_reader import HfArgumentParser, ModelArguments, DataTrainingArguments, OurTrainingArguments
-from model.generation_trainer import Seq2SeqTrainer
-from transformers import HfArgumentParser, set_seed, AutoTokenizer, AutoModelForSeq2SeqLM, DataCollatorWithPadding, EarlyStoppingCallback
-from utils.metric import compute_generation_metrics
+import logging.config
+import torch
+from utils.arguments_prompt_reader import ModelArguments, DataTrainingArguments, OurTrainingArguments
+from utils.dataloader_generation import CausalLMDataModule
+from utils.utils import find_linear_names
+from trl import SFTTrainer
+from transformers import HfArgumentParser, set_seed, AutoTokenizer, AutoModelForCausalLM, DataCollatorForLanguageModeling, BitsAndBytesConfig
+from peft import get_peft_model, LoraConfig
+from huggingface_hub import login
+
+login()
 
 logger = logging.getLogger("gen")
 logger.setLevel(logging.INFO)
@@ -24,49 +29,62 @@ torch.cuda.manual_seed_all(seed)
 
 
 def main():
-    logger.info('*** BART Training ***')
     parser = HfArgumentParser(
-        (ModelArguments, DataTrainingArguments, OurTrainingArguments)
+        (ModelArguments, DataTrainingArguments, OurTrainingArguments) # arguement 쭉 읽어보면서 이해하기
     )
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
-    
-    # Load Arguments 
-    logger.info(f"Our training arguments: {training_args}")
-    
+    # 학습 파라미터 로깅
+    logger.info(f"Model is from {model_args.model_name_or_path}")
+    logger.info(f"Data is from {data_args.dataset_name}")
+    logger.info("Training/evaluation parameters %s", training_args)
+
     # 모델을 초기화하기 전에 난수를 고정
     set_seed(training_args.seed)
+
+    # pretrained model 과 tokenizer를 불러오기
     tokenizer = AutoTokenizer.from_pretrained(model_args.model_name_or_path)
-    model = AutoModelForSeq2SeqLM.from_pretrained(model_args.model_name_or_path)
-    
-    # Load Dataset
-    dm = Seq2SeqDataModule(data_args, training_args, tokenizer) 
-    train_dataset, eval_dataset = dm.get_processing_data()
-    logger.info(f"Train dataset size: {len(train_dataset)}")
-    logger.info(f"Eval dataset size: {len(eval_dataset)}")
-    logger.info(f"First item in train dataset: {train_dataset[0]}")
-    
-    # 배치 단위의 데이터 전처리, 주어진 샘플들을 하나의 배치로 묶는 역할
-    data_collator = DataCollatorWithPadding(tokenizer, pad_to_multiple_of=8 if training_args.fp16 else None)
+    quantization_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_use_double_quant=True,
+            bnb_4bit_compute_dtype=torch.bfloat16
+    )
+    model = AutoModelForCausalLM.from_pretrained(
+        model_args.model_name_or_path,
+        from_tf=bool(".ckpt" in model_args.model_name_or_path),
+        quantization_config=quantization_config
+    )
+    modules  = find_linear_names(model, 'qlora')
+    lora_config = LoraConfig(r=32, lora_alpha=32, lora_dropout=0.1, bias="none", target_modules=modules, task_type="CAUSAL_LM", modules_to_save=None,)
+    model = get_peft_model(model, lora_config)
+    model.print_trainable_parameters()
+    logger.info(model)
     total_params = sum(p.numel() for p in model.parameters())
     logger.info(f"모델의 전체 파라미터 수 : {total_params}")
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     logger.info(f"모델의 학습 가능한 파라미터 수 : {trainable_params}")
 
+    # 데이터 불러오기 및 전처리
+    dm = CausalLMDataModule(data_args, training_args, tokenizer) 
+    train_dataset, eval_dataset = dm.get_processing_data()
     # Trainer 초기화
-    trainer = Seq2SeqTrainer(
+    tokenizer.pad_token = tokenizer.eos_token
+    tokenizer.padding_side='right'
+    
+    # SFTTrainer는 trainer가 알아서 dataset을 tokenize함
+    trainer = SFTTrainer(
         model=model,
+        dataset_text_field="prompt",
+        max_seq_length=training_args.max_seq_length,
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
+        peft_config=lora_config,
         tokenizer=tokenizer,
-        data_collator=data_collator,
-        compute_metrics=compute_generation_metrics,
-        post_process_function=dm._post_process_function,
-        callbacks = [EarlyStoppingCallback(early_stopping_patience=5)]
+        data_collator=DataCollatorForLanguageModeling(tokenizer, mlm=False)
     )
 
-    # 모델 학습 및 평가 진행
-    torch.cuda.empty_cache()
+    # Training
     train_result = trainer.train()
     trainer.save_model()  # Saves the tokenizer too for easy upload
 
@@ -89,7 +107,7 @@ def main():
     trainer.state.save_to_json(
         os.path.join(training_args.output_dir, "trainer_state.json")
     )
-    
+
     # Evaluation
     logger.info("***** Evaluate *****")
     metrics = trainer.evaluate()
@@ -98,7 +116,7 @@ def main():
 
     trainer.log_metrics("eval", metrics)
     trainer.save_metrics("eval", metrics)
-    
+
 
 if __name__ == "__main__":
     main()
