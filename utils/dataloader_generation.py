@@ -9,6 +9,7 @@ class Seq2SeqDataModule:
         self.training_args = training_args
         self.tokenizer = tokenizer
         self.datasets = load_from_disk(data_args.dataset_name)
+        
         if training_args.do_train:
             self.column_names = self.datasets["train"].column_names
         else:
@@ -30,9 +31,10 @@ class Seq2SeqDataModule:
             return_token_type_ids=False,
         )
         # labels 확장
-        sample_mapping = tokenized_examples.pop("overflow_to_sample_mapping")
-        no_answer_token_ids = self.tokenizer("X", max_length=self.training_args.max_seq_length, padding="max_length")['input_ids']
-        #no_answer_token_ids = [self.tokenizer.bos_token_id]+[self.tokenizer.pad_token_id]*(self.training_args.max_seq_length-1)
+        # 한 context를 여러 개의 chunk로 나누어 chunk단위로 예측할 것
+        # 그런데 답을 포함하지 않는 chunk가 존재할 경우 그 chunk에서는 정답을 예측할 수 없기 때문에 label을 bos token으로 줌
+        sample_mapping = tokenized_examples.pop("overflow_to_sample_mapping")   # 각 chunk가 몇 번째 context에서 나왔는지 index 정보
+        no_answer_token_ids = self.tokenizer("<s>", max_length=self.training_args.max_seq_length, padding="max_length")['input_ids']
 
         example_labels = []
         for idx, sample_idx in enumerate(sample_mapping):
@@ -43,18 +45,10 @@ class Seq2SeqDataModule:
             if decoded_label in decoded_input:
                 example_labels.append(label)
             else:
-                example_labels.append(no_answer_token_ids)
+                example_labels.append(no_answer_token_ids)  # skip_special_tokens=True니까 ""가 됨
 
         tokenized_examples['labels'] = example_labels
-        #tokenized_examples["labels"] = [tokenized_examples['labels'][i] for i in sample_mapping]
 
-        total = 0
-        no = 0
-        for label in tokenized_examples['labels']:
-            if self.tokenizer.decode(label, skip_special_tokens=True) == "X":
-                no += 1
-            total += 1
-        print(f'total : {total}, no : {no}')
         return tokenized_examples
     
     def get_processing_data(self):
@@ -76,9 +70,9 @@ class Seq2SeqDataModule:
             load_from_cache_file=not self.data_args.overwrite_cache)
         return train_dataset, val_dataset
     
-    
+        
     def _post_process_function(self, features, predictions, training_args):
-        # BART 모델의 출력 처리
+        # BART 모델의 출력 처리 -> tuple로 출력됨.
         if isinstance(predictions, tuple):
             predictions = predictions[0]
         if isinstance(features, tuple):
@@ -86,19 +80,22 @@ class Seq2SeqDataModule:
             
         if predictions.ndim == 3:
             predictions = np.argmax(predictions, axis=-1)
+            
         # decoding -> token_ids to text
-
         preds = self.tokenizer.batch_decode(predictions, skip_special_tokens=True)
         refs = self.tokenizer.batch_decode(features['labels'], skip_special_tokens=True)
         print('')
-        print('preds : ', preds[:10])
-        print('refs : ', refs[:10])
-        #후처리된 예측 ==> {"id"(예제ID), "prediction_text"(예측답변텍스트)} 딕셔너리 리스트
-        #do_predict인 경우 ==> formatted_predictions (inference해야함)
-        #do_eval인 경우 ==>  예측, 정답 함께 반환 (f1, em결과 확인용)
+        print('예측 결과')
+        for pred, ref in zip(preds[:5], refs[:5]):
+            print(f'예측 : {pred} 정답 : {ref}')
+        print('---------------------------------------')
+        
+        # do_predict인 경우 ==> formatted_predictions (inference해야함)
+        # do_eval인 경우 ==>  예측, 정답 함께 반환 (f1, em결과 확인용)
         if training_args.do_predict:
             return preds
         elif training_args.do_eval:
+            # 후처리된 예측 ==> {"id"(예제ID), "prediction_text"(예측답변텍스트)} 딕셔너리 리스트
             return EvalPrediction(predictions=preds, label_ids=refs)
         
 # Prompt
@@ -116,7 +113,7 @@ EXAONE_TEMP = '''[|system|] You are EXAONE model from LG AI Research, a helpful 
 Question:{}
 [|assistant|]{}[|endofturn|]'''
 
-class GenerationDataModule():
+class CausalLMDataModule():
     def __init__(self, data_args, training_args, tokenizer):
         self.data_args = data_args
         self.training_args = training_args
@@ -163,14 +160,7 @@ class GenerationDataModule():
                             num_proc=self.data_args.preprocessing_num_workers,
                             remove_columns=self.column_names
                         )
-        # # Validation feature 생성
-        # eval_dataset = self.datasets["validation"]
-        # eval_dataset = eval_dataset.map(
-        #     self._generate_validation_prompt,
-        #     batched=True,
-        #     num_proc=self.data_args.preprocessing_num_workers,
-        #     remove_columns=self.column_names
-        # )
+
         eval_dataset = self.datasets["validation"]
         eval_dataset = eval_dataset.map(
             self._generate_training_prompt,
