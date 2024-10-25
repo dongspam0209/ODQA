@@ -75,7 +75,7 @@ class Seq2SeqTrainer(Trainer):
             outputs = self.model.generate(**inputs, max_new_tokens=30)
         pred = self.tokenizer.decode(outputs, skip_special_tokens=True)
         return pred
-    
+
     
 class GenerationTrainer(SFTTrainer):
     def __init__(self, *args, post_process_function=None, **kwargs):
@@ -158,14 +158,3 @@ class GenerationTrainer(SFTTrainer):
         references = [{'answers': {'answer_start': [], 'text': [label]}, 'id': str(i)} for i, label in enumerate(labels)]
         result = self.metrics.compute(predictions=predictions, references=references)
         return result'''
-    
-    # predict -> infernece. 그냥 generate해서 내뱉기.
-    # prediction_loop로 가능할까
-    def predict(self, inputs):
-        # question과 retrieval이 prompt 형태로 합쳐져서 token화 된 후에 와야 함.
-        inputs = {k: v.to(self.model.device) for k, v in inputs.items()}
-
-        with torch.no_grad():
-            outputs = self.model.generate(**inputs, max_new_tokens=30)
-        pred = self.tokenizer.decode(outputs, skip_special_tokens=True)
-        return pred
