@@ -11,32 +11,29 @@ from database.dense_retrieval import VectorDatabase
 from model.bm25 import BM25Reranker
 from utils.metric import get_topk_accuracy
 from utils.utils import init_logging
-from utils.dataloader_reader import load_from_disk
 
 LOGGER = logging.getLogger()
 
 
-def search_evaluation(q_encoder, tokenizer, valid_dataset, faiss_index, text_index, text,
+def search_evaluation(q_encoder, tokenizer, test_dataset, faiss_index, text_index, text,
                       search_k=2000, bm25_model=None, faiss_weight=1, bm25_weight=0.5, max_length=512, 
                       pooler=None, padding=True, truncation=True, batch_size=32, device='cuda'):
     
-    print('>>> Loading valid data.')
-    df_valid = valid_dataset
-    print(df_valid)
     
-    question = df_valid['question'].tolist()
-    answer_idx = [[idx] for idx in range(len(df_valid))]
+    question = test_dataset.question
+    answer_idx = test_dataset.answer_idx
+    print(answer_idx)
     
     # BM25를 통해 각 question에 해당하는 corpus 유사도 점수 계산
     print('>>> Searching documents using BM25 index.')
     question_test_idx = np.array([text_index for _ in range(len(question))])
     
-    bm25_scores = bm25_model.get_bm25_rerank_scores(question, question_test_idx)
-    # shape : (240, 138564) = (valid 질문 수, passage 수)
-    with open("./database/pickles_kiwi_main_hf_dpr/valid_bm25_kiwi_main-hf-dpr_scores.pkl", 'wb') as file:
-        pickle.dump(bm25_scores, file)
+    # bm25_scores = bm25_model.get_bm25_rerank_scores(question, question_test_idx)
+    # # shape : (240, 138564) = (valid 질문 수, passage 수)
+    # with open("valid_bm25_kiwi_main-hf-dpr2_scores.pkl", 'wb') as file:
+    #     pickle.dump(bm25_scores, file)
     
-    with open("./database/pickles_kiwi_main_hf_dpr/valid_bm25_kiwi_main-hf-dpr_scores.pkl", 'rb') as file:
+    with open("valid_bm25_kiwi_main-hf-dpr2_scores.pkl", 'rb') as file:
         bm25_scores = pickle.load(file)
         print("Load bm25 scores:", bm25_scores.shape)
     
@@ -129,8 +126,7 @@ def main(args):
     pooler = Pooler(args.pooler)
     
     # Load valid dataset.
-    datasets = load_from_disk(args.valid_data)
-    valid_dataset = datasets['validation'].to_pandas()
+    test_dataset = BiEncoderDataset.load_valid_dataset(args.valid_data)
 
     # Load faiss index & context
     faiss_vector = VectorDatabase(args.faiss_path)
@@ -146,7 +142,7 @@ def main(args):
         bm25_model = None
     
     # Get top-k accuracy
-    search_evaluation(q_encoder, tokenizer, valid_dataset, faiss_index, text_index, text, search_k=args.search_k,
+    search_evaluation(q_encoder, tokenizer, test_dataset, faiss_index, text_index, text, search_k=args.search_k,
                                bm25_model=bm25_model, faiss_weight=args.faiss_weight, bm25_weight=args.bm25_weight,
                                max_length=args.max_length, pooler=pooler, padding=args.padding, truncation=args.truncation,
                                batch_size=args.batch_size, device=args.device)
@@ -155,29 +151,29 @@ def main(args):
 def argument_parser():
     parser = argparse.ArgumentParser(description='get topk-accuracy of retrieval model')
     parser.add_argument('--model', type=str, 
-                        default = './resources/checkpoint/dpr/question_encoder',
+                        default = './checkpoint/dpr/question_encoder',
                         help='Directory of pretrained encoder model'
                        )
     parser.add_argument('--valid_data', type=str,
-                        default='../resources/data/train_dataset',
+                        default='./resources/dpr/dpr_valid_v2.json',
                         help='Path of validation dataset'
                        )
     parser.add_argument('--faiss_path', type=str,
-                        default='./database/pickles_kiwi_main_hf_dpr/faiss_pickle.pkl',
+                        default='./database/pickles_kiwi_main_hf_dpr2/faiss_pickle.pkl',
                         help='Path of faiss pickle'
                        )
     parser.add_argument('--bm25_path', type=str,
-                        default='./database/pickles_kiwi_main_hf_dpr/bm25_pickle.pkl',
+                        default='./database/pickles_kiwi_main_hf_dpr2/bm25_pickle.pkl',
                         help='Path of BM25 Model'
                        )
-    parser.add_argument('--context_path', type=str,
-                            default='./database/pickles_kiwi_main_hf_dpr/context_pickle.pkl',
-                            help='Path of BM25 Model'
-                        )
-    parser.add_argument('--faiss_weight', default=0.4, type=float, 
+    # parser.add_argument('--context_path', type=str,
+    #                         default='./database/pickles_hf/context_pickle.pkl',
+    #                         help='Path of BM25 Model'
+    #                     )
+    parser.add_argument('--faiss_weight', default=0.8, type=float, 
                         help='Weight for semantic search'
                        )
-    parser.add_argument('--bm25_weight', default=0.6, type=float, 
+    parser.add_argument('--bm25_weight', default=0.2, type=float, 
                         help='Weight for BM25 rerank score'
                        )
     parser.add_argument('--search_k', default=2000, type=int,

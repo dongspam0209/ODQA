@@ -52,7 +52,6 @@ def main():
     # 모델 학습 및 평가 진행
     trainer.train()
     
-
-
+    
 if __name__ == "__main__":
     main()

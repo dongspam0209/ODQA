@@ -1,13 +1,19 @@
-import datetime
-import collections
+import os
 import json
 import logging
-import os
-from typing import Any, Optional, Tuple
-from transformers import EvalPrediction
+import datetime
+import collections
 import numpy as np
+import pandas as pd
 from tqdm.auto import tqdm
+from datasets import Dataset
 from datasets import load_metric
+from transformers import EvalPrediction
+from typing import Any, Optional, Tuple
+from datasets import DatasetDict, Features, Sequence, Value
+from utils.context_preprocess import WikipediaTextPreprocessor
+
+preprocessor = WikipediaTextPreprocessor()
 
 logger = logging.getLogger("mrc")
 logger.setLevel(logging.INFO)
@@ -330,12 +336,13 @@ def format_time(elapsed):
     return str(datetime.timedelta(seconds=elapsed_rounded)) # Format as hh:mm:ss
 
 
-def get_topk_accuracy(faiss_index, answer_idx, positive_idx): 
+def get_topk_accuracy(faiss_index, answer_idx, positive_idx, text=None, title=None): 
 
     top1_correct = 0
     top5_correct = 0
     top10_correct = 0
     top20_correct = 0
+    top30_correct = 0
     top50_correct = 0
     top100_correct = 0
     
@@ -350,9 +357,7 @@ def get_topk_accuracy(faiss_index, answer_idx, positive_idx):
         #       [44597 35140  7572  4596 ...]]
          
         retrieved_idx = faiss_index[idx] 
-            
-        retrieved_idx = [positive_idx[jdx] for jdx in retrieved_idx]   
-        
+        retrieved_idx = [positive_idx[jdx] for jdx in retrieved_idx]
         if any(ridx in answer for ridx in retrieved_idx[:1]):
             top1_correct += 1
         if any(ridx in answer for ridx in retrieved_idx[:5]):
@@ -361,6 +366,8 @@ def get_topk_accuracy(faiss_index, answer_idx, positive_idx):
             top10_correct += 1
         if any(ridx in answer for ridx in retrieved_idx[:20]):
             top20_correct += 1
+        if any(ridx in answer for ridx in retrieved_idx[:30]):
+            top30_correct += 1
         if any(ridx in answer for ridx in retrieved_idx[:50]):
             top50_correct += 1
         if any(ridx in answer for ridx in retrieved_idx[:100]):
@@ -370,6 +377,7 @@ def get_topk_accuracy(faiss_index, answer_idx, positive_idx):
     top5_accuracy = top5_correct / len(answer_idx)
     top10_accuracy = top10_correct / len(answer_idx)    
     top20_accuracy = top20_correct / len(answer_idx)
+    top30_accuracy = top30_correct / len(answer_idx)
     top50_accuracy = top50_correct / len(answer_idx)
     top100_accuracy = top100_correct / len(answer_idx)
 
@@ -378,6 +386,41 @@ def get_topk_accuracy(faiss_index, answer_idx, positive_idx):
         'top5_accuracy':top5_accuracy,
         'top10_accuracy':top10_accuracy,        
         'top20_accuracy':top20_accuracy,
+        'top30_accuracy':top30_accuracy,
         'top50_accuracy':top50_accuracy,
         'top100_accuracy':top100_accuracy,
     }
+    
+def get_topk_document(faiss_index, question, question_idx, positive_idx, text=None, title=None, save_dir=None): 
+
+    result = []    
+    for idx, q_idx in enumerate(question_idx):
+        retrieved_idx = faiss_index[idx] 
+        retrieved_idx = [positive_idx[jdx] for jdx in retrieved_idx]
+        candidate_corpus = retrieved_idx[:40]
+        
+        context = []
+        for x in candidate_corpus:
+            clean_text = preprocessor.preprocess_pipeline(text[x])
+            corpus = title[x] + '. ' + clean_text
+            context.append(corpus)
+            
+        tmp = {
+            # Query와 해당 id를 반환합니다.
+            "question": question[idx],
+            "id": q_idx,
+            # Retrieve한 Passage의 id, context를 반환합니다.
+            "context": "\n\n".join(context),
+        }
+        result.append(tmp)
+    cqas = pd.DataFrame(result)
+    print(cqas)
+    f = Features(
+        {
+            "context": Value(dtype="string", id=None),
+            "id": Value(dtype="string", id=None),
+            "question": Value(dtype="string", id=None),
+        }
+    )
+    datasets = DatasetDict({"validation": Dataset.from_pandas(cqas, features=f)})
+    datasets.save_to_disk(save_dir)

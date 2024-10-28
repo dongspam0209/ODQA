@@ -8,9 +8,11 @@ import torch
 from utils.arguments_inference import ModelArguments, DataTrainingArguments, OurTrainingArguments
 from utils.dataloader_reader import load_from_disk, ExtracionDataModuleforInference
 from utils.metric import compute_metrics
-from transformers import HfArgumentParser, set_seed, AutoTokenizer, AutoModelForQuestionAnswering, DataCollatorWithPadding
+from transformers import HfArgumentParser, set_seed, AutoTokenizer, AutoConfig, DataCollatorWithPadding
 from database.retrieval import run_sparse_retrieval
 from model.extraction_trainer import QuestionAnsweringTrainer
+from model.extraction_cnn import Bert_CNN_Answering  , BigBird_CNN_Answering
+
 
 logger = logging.getLogger("mrc")
 logger.setLevel(logging.INFO)
@@ -41,10 +43,11 @@ def main():
 
     # pretrained model 과 tokenizer를 불러오기
     tokenizer = AutoTokenizer.from_pretrained(model_args.model_name_or_path)
-    model = AutoModelForQuestionAnswering.from_pretrained(
+    config = AutoConfig.from_pretrained( 
         model_args.model_name_or_path,
         from_tf=bool(".ckpt" in model_args.model_name_or_path),
     )
+    model=BigBird_CNN_Answering(config, model_args.model_name_or_path)
     
     # retrieval 결과 불러오기
     datasets = load_from_disk("./resources/retrieval/top40_bm25_retrieval_dataset")

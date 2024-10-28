@@ -124,7 +124,7 @@ def train():
 
 def main():
     # Load sweep config
-    with open('./config.yaml', 'r') as file:
+    with open('./train_extraction_reader_wandb_config.yaml', 'r') as file:
         sweep_config = yaml.safe_load(file)
     
     sweep_id = wandb.sweep(sweep_config, project="ODQA_roberta")

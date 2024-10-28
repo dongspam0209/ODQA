@@ -12,6 +12,7 @@ from nltk import sent_tokenize
 from datasets import load_from_disk
 
 class VectorDatabase(object):
+    
     def __init__(self, faiss_pickle=None, context_pickle=None):
         self.text = None
         self.title = None
@@ -83,14 +84,12 @@ class VectorDatabase(object):
 
         return idx_lst, txt_lst, title_lst
 
-    def _load_wikidata(self, wiki_path, valid_dataset):
+    def _load_wikidata(self, wiki_path, num_sent=5, overlap=0, cpu_workers=None, gold_passages=None):
         print('>>> Loading valid data.')
-        df_valid = valid_dataset
-        
+        datasets = load_from_disk("../resources/data/train_dataset")
+        df_valid = datasets['validation'].to_pandas()
         print('>>> Loading wiki data.')
-        with open(wiki_path) as f:
-            dic = json.load(f)
-        df = pd.DataFrame(dic)
+        df = pd.read_csv(wiki_path)
         
         # Store text from test set first.
         idx_lst, txt_lst, title_lst = [], [], [] 
@@ -112,7 +111,8 @@ class VectorDatabase(object):
             
         for _idx in range(idx_lst[-1]+1, len(txt_lst)):
             idx_lst.append(_idx)
-            
+        print(idx_lst[239:242])
+        print(len(idx_lst))
         print(f'>>> Total number of passages: ')
         return idx_lst, txt_lst, title_lst
     
@@ -206,19 +206,22 @@ class VectorDatabase(object):
 
     def build_embedding(self,
                         wiki_path=None,
-                        valid_dataset=None,
                         save_path=None,
                         save_context=None,
                         tokenizer=None,
                         embedding_model=None,
                         pooler = None,
+                        num_sent=5,
+                        overlap=0,
+                        cpu_workers=None,
+                        gold_passages=None,
                         embedding_size=768,
                         max_length=512,
                         batch_size=32,
                         device='cuda',
                         ):
         
-        idx_lst, txt_lst, title_lst = self._load_wikidata(wiki_path, valid_dataset)
+        idx_lst, txt_lst, title_lst = self._load_wikidata(wiki_path, num_sent, overlap, cpu_workers, gold_passages)
 
         all_embeddings = self.encode_text(title_lst, txt_lst, embedding_model, tokenizer, pooler, max_length, batch_size, device)
         

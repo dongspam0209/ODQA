@@ -10,7 +10,6 @@ import pandas as pd
 from tqdm import tqdm
 from kiwipiepy import Kiwi
 from rank_bm25 import BM25Okapi
-from datasets import load_from_disk
 from dense_retrieval import VectorDatabase
 from transformers import AutoModel, AutoTokenizer
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -95,20 +94,24 @@ def get_dpr_embedding():
     LOGGER.info('*** Building Vector Database ***')
     args = dense_argument()
     vector_db = VectorDatabase()
-    datasets = load_from_disk(args.valid_data)
-    valid_dataset = datasets['validation'].to_pandas()
+    if args.valid_data:
+        valid_dataset = BiEncoderDataset.load_valid_dataset(args.valid_data)
+        gold_passages = valid_dataset.positive_ctx
+    else:
+        gold_passages = None
         
     model = AutoModel.from_pretrained(args.model)
     tokenizer = AutoTokenizer.from_pretrained(args.model)
     pooler = Pooler(args.pooler)
 
     vector_db.build_embedding(wiki_path=args.wiki_path,
-                              valid_dataset=valid_dataset,
                               save_path=args.save_path,
                               save_context=args.save_context,
                               tokenizer=tokenizer,
                               embedding_model=model,
                               pooler=pooler,
+                              cpu_workers=args.cpu_workers,
+                              gold_passages=gold_passages,
                               device = args.device,)
     
     #### Train BM 25 ####
@@ -135,15 +138,15 @@ def dense_argument():
                         default="../checkpoint/dpr/context_encoder",
                         help='Directory of pretrained encoder model'
                        )
-    parser.add_argument('--wiki_path', type=str, default='../resources/data/wikipedia_documents.json',
+    parser.add_argument('--wiki_path', type=str, default='../resources/processed/modified_wikipedia_documents.csv',
                         help='csv 형식, 컬럼에 document id, title, context가 존재해야 함'
                        )
     parser.add_argument('--valid_data', type=str,
-                        default='../resources/data/train_dataset',
+                        default='../resources/dpr/dpr_valid_v2.json',
                         help='Path of validation dataset'
                        )
     parser.add_argument('--save_path', type=str, 
-                        default='./pickles_kiwi_main_hf_dpr',
+                        default='./pickles_kiwi_main_hf_dpr2',
                         help='Save directory of faiss index'
                        )
     parser.add_argument('--save_context', action='store_true', 
@@ -153,6 +156,14 @@ def dense_argument():
     parser.add_argument('--train_bm25', action='store_true', 
                         default=True,
                         help='Train bm25 with the same corpus'
+                       )
+    parser.add_argument('--num_sent', type=int, 
+                        default=5,
+                        help='Number of sentences consisting of a wiki chunk'
+                       )
+    parser.add_argument('--overlap', type=int, 
+                        default=0,
+                        help='Number of overlapping sentences between consecutive chunks'
                        )
     parser.add_argument('--pooler', default='cls', type=str,
                         help='Pooler type : {pooler_output|cls|mean|max}'
@@ -164,6 +175,11 @@ def dense_argument():
                         default=128,
                         help='Batch size'
                        )
+    parser.add_argument('--cpu_workers', type=int, 
+                        default=os.cpu_count()//2,
+                        required=False,
+                        help='Number of cpu cores used in chunking wiki text'
+                       ) 
     parser.add_argument('--device', default = 'cuda' if torch.cuda.is_available() else 'cpu', type=str,
                         help = 'Choose a type of device for training'
                        )

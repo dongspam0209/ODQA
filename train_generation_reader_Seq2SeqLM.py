@@ -3,9 +3,9 @@ import torch
 import random
 import logging
 import numpy as np
-from utils.dataloader_generation import BARTDataModule
+from utils.dataloader_generation import Seq2SeqDataModule
 from utils.arguments_generation_reader import HfArgumentParser, ModelArguments, DataTrainingArguments, OurTrainingArguments
-from model.generation_trainer import BARTTrainer
+from model.generation_trainer import Seq2SeqTrainer
 from transformers import HfArgumentParser, set_seed, AutoTokenizer, AutoModelForSeq2SeqLM, DataCollatorWithPadding, EarlyStoppingCallback
 from utils.metric import compute_generation_metrics
 
@@ -39,7 +39,7 @@ def main():
     model = AutoModelForSeq2SeqLM.from_pretrained(model_args.model_name_or_path)
     
     # Load Dataset
-    dm = BARTDataModule(data_args, training_args, tokenizer) 
+    dm = Seq2SeqDataModule(data_args, training_args, tokenizer) 
     train_dataset, eval_dataset = dm.get_processing_data()
     logger.info(f"Train dataset size: {len(train_dataset)}")
     logger.info(f"Eval dataset size: {len(eval_dataset)}")
@@ -53,7 +53,7 @@ def main():
     logger.info(f"모델의 학습 가능한 파라미터 수 : {trainable_params}")
 
     # Trainer 초기화
-    trainer = BARTTrainer(
+    trainer = Seq2SeqTrainer(
         model=model,
         args=training_args,
         train_dataset=train_dataset,

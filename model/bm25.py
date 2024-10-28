@@ -3,15 +3,16 @@ import pickle
 import logging
 import numpy as np
 from rank_bm25 import BM25Okapi
+from kiwipiepy import Kiwi
+kiwi=Kiwi()
 
 LOGGER = logging.getLogger()
 
 
 class BM25Reranker(object):
-
     def __init__(self, tokenizer=None, bm25_pickle=None):
         self.model = None
-        self.tokenizer = tokenizer=None
+        self.tokenizer = tokenizer
         
         if bm25_pickle:
             self._load_bm25_pickle(bm25_pickle)
@@ -30,7 +31,18 @@ class BM25Reranker(object):
             pickle.dump(model, file)
             
     def _tokenize(self, text):
-        tokenized_text = [txt.split() for txt in text] 
+        # tokenized_text = [self.tokenizer.tokenize(txt) for txt in text]
+        tokenized_text = []
+        for txt in text:
+            try:
+                morph_question = kiwi.tokenize(txt)
+                morph_question_form = [x.form for x in morph_question if x.tag in ["NNG", "NNP","NNB","NR","NP","SN","SH","SL","VV","VA","XR"]]
+                morph_question_form_hf = []
+                for x in morph_question_form:
+                    morph_question_form_hf.extend(self.tokenizer.tokenize(x))
+            except:
+                morph_question_form = kiwi.tokenize(txt)
+            tokenized_text.append(morph_question_form_hf)
         return tokenized_text
 
     def _prepend_title_to_text(self, text, title):
@@ -46,7 +58,7 @@ class BM25Reranker(object):
         else:
             tokenized_text = self._tokenize(text)
             
-        print('>>> Training BM25 model...')        
+        print('>>> Training BM25 model...')
         model = BM25Okapi(tokenized_text) 
 
         print('>>> Training done.')
@@ -54,7 +66,7 @@ class BM25Reranker(object):
         self._save_bm25_pickle(model, path)
 
     def get_bm25_rerank_scores(self, questions, doc_ids):
-        tokenized_questions = self._tokenize(questions)    
+        tokenized_questions = self._tokenize(questions)
         bm25_scores = []
         for question, doc_id in zip(tokenized_questions, doc_ids):
             # bm25_score : [0.        , 0.93729472, 0.        ... ]
