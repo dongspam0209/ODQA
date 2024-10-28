@@ -35,33 +35,22 @@ $ generate_DPR_dataset_korquad.ipynb
 ```
 
 **Step 3.** DPR 모델 학습
-```sh
-# ./level2-mrc-nlp-08 경로에서 실행
-$ python train_dpr.py
-```
+
 **utils/arguments_dpr.py** 에서 DPR 학습을 위한 파라미터 변경
 - model : 원하는 사전 학습된 모델 불러오기
 - train_data : generate_DPR_dataset_korquad.ipynb 에서 생성한 데이터 경로
 - valid_data : generate_DPR_dataset_korquad.ipynb 에서 생성한 데이터 경로
 - q_output_path : Query embedding 모델 저장할 경로
 - c_output_path : Context embedding 모델 저장할 경로
+```sh
+# ./level2-mrc-nlp-08 경로에서 실행
+$ python train_dpr.py
+```
+
 
 
 **Step 4.** Retrieval를 위한 사전처리 진행
-```sh
-# 작업환경 변경
-$ cd database
 
-# 다음 코드를 실행하여 embedding vector 추출
-$ python get_embedding_vec.csv
-
-# BM25 및 DPR 성능 확인
-$ cd ..
-$ python test_retrieval.py
-
-# Inference 시 사용할 retireve 된 데이터 생성
-$ python test_retrieval_inference.py
-```
 **database/python get_embedding_vec.csv** : BM25 모델 및 DPR의 embedding vector 저장
 - model : 학습된 context embedding 모델 경로
 - wiki_path : Wiki.doc 데이터 경로 
@@ -82,7 +71,29 @@ $ python test_retrieval_inference.py
 - bm25_path : 위와 동일
 - context_path : 위와 동일
 
+```sh
+# 작업환경 변경
+$ cd database
+
+# 다음 코드를 실행하여 embedding vector 추출
+$ python get_embedding_vec.csv
+
+# BM25 및 DPR 성능 확인
+$ cd ..
+$ python test_retrieval.py
+
+# Inference 시 사용할 retireve 된 데이터 생성
+$ python test_retrieval_inference.py
+```
+
+
 **Step 5.** Reader 학습
+
+**utils/arguments_extraction_reader.py**에서 extracion based model 학습을 위한 파라미터 변경
+- model_name_or_path : 사전 학습된 모델 불러오기
+- dataset_name : Query-Passage 쌍 데이터나 증강된 데이터 경로로 변경
+- output_dir : 학습된 모델 및 평가 결과 저장 경로
+
 ```sh
 # 다음 코드를 실행하여 extraction based model 학습
 $ python train_extraction_reader.py
@@ -91,20 +102,20 @@ $ python train_extraction_reader.py
 $ python train_generation_reader_Seq2SeqLM,.py
 $ python train_generation_reader_CausalLM,.py
 ```
-**utils/arguments_extraction_reader.py**에서 extracion based model 학습을 위한 파라미터 변경
-- model_name_or_path : 사전 학습된 모델 불러오기
-- dataset_name : Query-Passage 쌍 데이터나 증강된 데이터 경로로 변경
-- output_dir : 학습된 모델 및 평가 결과 저장 경로
+
 
 
 **Step 6.** Inference 실행
-- 코드 50번째 줄에서 retireve 된 데이터 불러오는 경로 원하는 것으로 변경하면서 사용
-```sh
-$ python inference.py
-```
+
 **utils/arguments_inference.py**에서 inference 할 extraction based 모델의 파라미터 변경
 - model_name_or_path : 학습이 완료된 모델 불러오기
 - output_dir : Inference 결과 저장 경로
+
+```sh
+# 코드 50번째 줄에서 retireve 된 데이터 불러오는 경로 원하는 것으로 변경하면서 사용
+$ python inference.py
+```
+
 
 **Step 7.** 앙상블 실행
 ```sh
@@ -115,22 +126,4 @@ $ correlation_exp.ipynb
 $ ensemble_v1.ipynb
 $ ensemble_v2.ipynb
 
-```
-
-**Optional.** 원격 연결 끊어졌을 때도 돌아갈 수 있도록 Tmux 사용을 권장
-```sh
-# 새로운 세션 생성
-$ tmux new -s (session_name)
-
-# 세션 목록
-$ tmux ls
-
-# 세션 시작하기 (다시 불러오기)
-tmux attach -t (session_name)
-
-# 세션에서 나가기
-(ctrl + b) d
-
-# 특정 세션 강제 종료
-$ tmux kill-session -t (session_name)
 ```
