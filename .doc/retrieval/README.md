@@ -68,7 +68,7 @@
             - Training set : 대회 학습 데이터(3,952개) + KoQuAD 1.0 학습 데이터 (60,407개)
             - Validation set : 대회 검증 데이터(240개)
    - **Object Function**
-       - 어떠한 질문 $𝑞_𝑖$ ​, 이와 관련된(=positive) 지문  $𝑝_𝑖^+$  , 관련이 없는(=negative) n개의 지문  $𝑝_(𝑖,𝑗)^−$  로 이루어져 있음
+       - 어떠한 질문 $𝑞_𝑖$ ​, 이와 관련된(=positive) 지문  $𝑝_𝑖^+$  , 관련이 없는(=negative) n개의 지문  $𝑝_{(𝑖,𝑗)}^−$  로 이루어져 있음
        -  NLL (Negative Log-Likelihood) Loss를 사용해서 최적화
 
           $$L(q_i, p_i^+, p_{i,1}^-, \dots, p_{i,n}^-) = -\log \frac{e^{sim(q_i, p_i^+)}}{e^{sim(q_i, p_i^+)} + \sum_{j=1}^{n} e^{sim(q_i, p_{i,j}^-)}} $$
